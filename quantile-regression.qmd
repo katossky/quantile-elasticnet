@@ -86,3 +86,10 @@ From the project instructions
 Focus on prediction accuracy (not on reconstruction validity or inference).
 
 > we give a generic treatment to a set of regularization approaches, including lasso, group lasso and elastic net penalties.
+
+### Time accounting
+
+| Student  | Time spent so far |
+|--------|-------:|
+| Lucie  |      ? |
+| Arthur |     3h |
