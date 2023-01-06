@@ -6,13 +6,54 @@ date-format: "MMMM, YYYY"
 bibliography: quantile-regression.bib
 ---
 
-This reports reproduces the results @2010-quantile-regression, focussing on their extension of the quantile regression with Elasticnet regularisation in a Bayesian framework. Regression is the idea that, for an outcome $y\in\mathbb{R}$ and associated inputs $\mathbf{x}\in\mathbb{R}^d$ ($d \in \mathbb{N}_\star$), we may suppose that in some sense $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$. Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$ classical regression estimates the unknown parameter $\boldsymbol{\beta}$ by setting: $$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$${#eq-classical-regression} ... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least squares. In a **quantile regression**, one rather opts for the asymmetric "check loss" : $$\ell_\theta(a,b)=\left\{\begin{array}{cl}\theta (a-b), & \text { if } a \geqslant b \\ -(1-\theta) (a-b), & \text { if }  a<b\end{array}\right.$$ ... with $\theta\in(0,1)$, which generalises absolute loss $\ell_0(a,b)=|a-b|$ leading to so-called median regression. (Note that $\ell_0$ is proportional to $\ell_\theta$ with $\theta=0.5$ and that the proportionality coefficient does not matter in @eq-classical-regression, so the two losses are completely interchangeable.) Next, Elasticnet regularisation consists into constraining the values of $\boldsymbol{\beta}$ not to move too far away from the origin, in the sense that both $\|\boldsymbol{\beta}\|_1$ (the number of non-zero components) and $\|\boldsymbol{\beta}\|_2^2$ (the square of the distance to the origin) are small. This leads to the final problem: $$\hat{\boldsymbol{\beta}}_n(\lambda_1,\lambda_2,\theta)=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})+\lambda_1\|\boldsymbol{\beta}\|_1+\lambda_2\|\boldsymbol{\beta}\|^2_2$$ ... where $\lambda_1$ and $\lambda_2$ control how stringent each regularisation is (less strigent as $\lambda \to 0$).
+This reports reproduces the results @2010-quantile-regression, focussing on their extension of the quantile regression with Elasticnet regularisation in a Bayesian framework. Regression is the idea that, for an outcome $y\in\mathbb{R}$ and associated inputs $\mathbf{x}\in\mathbb{R}^d$ ($d \in \mathbb{N}_\star$), we may suppose that in some sense $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$. Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$ classical regression estimates the unknown parameter $\boldsymbol{\beta}$ by setting: $$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$$ {#eq-classical-regression} ... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least squares. In a **quantile regression**, one rather opts for the asymmetric "check loss" : $$\ell_\theta(a,b)=\left\{\begin{array}{cl}\theta (a-b), & \text { if } a \geqslant b \\ -(1-\theta) (a-b), & \text { if }  a<b\end{array}\right.$$ ... with $\theta\in(0,1)$, which generalises absolute loss $\ell_0(a,b)=|a-b|$ leading to so-called median regression. (Note that $\ell_0$ is proportional to $\ell_\theta$ with $\theta=0.5$ and that the proportionality coefficient does not matter in @eq-classical-regression, so the two losses are completely interchangeable.) Next, Elasticnet regularisation consists into constraining the values of $\boldsymbol{\beta}$ not to move too far away from the origin, in the sense that both $\|\boldsymbol{\beta}\|_1$ (the number of non-zero components) and $\|\boldsymbol{\beta}\|_2^2$ (the square of the distance to the origin) are small. This leads to the final problem: $$\hat{\boldsymbol{\beta}}_n(\eta_1,\eta_2,\theta)=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})+\eta_1\|\boldsymbol{\beta}\|_1+\eta_2\|\boldsymbol{\beta}\|^2_2$$ ... where $\eta_1$ and $\eta_2$ control how stringent each regularisation is (less strigent as $\eta \to 0$).
 
 The article studies **how to put Elasticnet quantile regression into a Bayesian paradigm**, thus allowing for priors over the distributions of both $\boldsymbol{\beta}$ and the approximation error in $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$.
 
-## Putting regularised quantile regression into the Bayesian formalism (1 page)
+## Putting regularised quantile regression (Elasticnet) into the Bayesian formalism (1 page)
 
 > Definition of the problem under study and explanation of why it is interesting
+
+We assume the following model for our $\theta^{th}$-quantile regression of the variables $y_i$ over $x_i$: $$ y_i = x_i^T \boldsymbol{\beta} + u_i. $$ We further assume that the residuals $u_i$ of the regression follow a skewed Laplace distribution with parameter $\tau$: $$f(u|\tau) = \theta(1 - \theta) \tau \exp(-\tau \ell_\theta(u)).$$
+
+Fixing a parameterized distribution on the residuals $u_i$ ensures a tractable expression for the likelihood function of our parameter of interest $\beta$ given a dataset of size $n$ : $$ \mathcal{L}(\beta) = \theta^n (1 - \theta)^n \tau^n \exp\bigg\{-\tau \sum_{i=1}^n \ell_\theta(y_i - x_i^T \boldsymbol{\beta} ) \bigg\}.$$
+
+In this framework, the regularization of the elasticnet quantile regression can be interpreted as the maximization of the posterior distribution in a specific Bayesian modelling of the regression problem. Indeed, we may set a prior distribution on our parameter of interest $\boldsymbol{\beta}$ of the form :
+
+$$ \pi_0(\boldsymbol{\beta} | \eta_1,\eta_2) \propto \exp \Big\{-\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\} $$.
+
+This leads to the following posterior distribution on $\beta$ :
+
+$$ \pi(\beta |y_i, x_i, \theta, \eta_1,\eta_2) \propto \exp \Big\{ - \tau \sum_{i=1}^n \ell_\theta(y_i - x_i^T\boldsymbol{\beta})
+-\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\} $$.
+
+Solving the maximum for this expression is equivalent to the minimization task defined eq...
+
+These calculations give us, under the assumption of the skewed Laplace distribution for the residuals, an explicit expression for the distribution of the estimator $\boldsymbol{\hat{\beta}}$ in the quantile regression with elastic-net regularisation. This will allow us to draw samples from the distribution of $\boldsymbol{\hat{\beta}}$ with a Gibbs algorithm.
+
+Before defining the Gibbs algorithm we will use to generate samples, we will first specify our bayesian hierarchical model.
+
+We reparameterize our regulation term by setting $$ \left\{ \begin{array}{l} 
+\eta_j = \tau \lambda_j \; \; \text{ for }\;  j \in \{1, 2\} \\
+\tilde{\eta_1}  = \eta_1^2/(4\eta_2) \\
+\end{array}\right.$$
+
+We then assume Gamma priors on variables $\tau$, $\tilde{\eta_1}$ and $\eta_2$ $$\left\{ \begin{array}{l}
+\tau \sim \tau^{a-1}\exp^{-b\tau} \\
+\tilde{\eta_1} \sim \tilde{\eta_1}^{c_1-1}\exp^{-d_1\tilde{\eta_1}} \\
+\eta_2 \sim \eta_2^{c_2-1}\exp^{-d_2\eta_2} 
+\end{array}\right.$$
+
+The parameters $a, b, c_1, c_2, d_1, d_2$ are fixed, non negative numbers.
+
+From these prior assumptions, we may infer the resulting conditional posterior on our parameter on interest $\boldsymbol{\beta}$. We here give the expression of the distribution of the component $\beta_k$ of $\boldsymbol{\hat{\beta}}$, conditionally to parameter $\eta_2$ and an intermediate parameter which we name $t_k$.
+
+$$\begin{array}{rcl}
+\beta_k | t_k, \eta_2 & \sim & \frac{1}{\sqrt{2\pi(t_k - 1)/(2\eta_2t_k)}} \exp\left\{ -\frac{1}{2} \left( \frac{t_k-1}{2\eta_2t_k}\right)^{-1} \beta_k^2 \right\} \\
+t_k | \tilde{\eta_1} & \sim & \Gamma^{-1}(1/2, \tilde{\eta_1}) t_k^{-1/2} \tilde{\eta_1}^{-1/2} \exp(-\tilde{\eta_1}t_k) \mathbb{I}(t_k>1)
+\end{array}$$
+
+Those last two equations, together with the gamma priors defined on variables $\tau$, $\tilde{\eta_1}$ and $\eta_2$, give us the basis of a Gibbs sampler for $\beta_k$. \> à vérifier, rajouter ici les lois conditionnelles de $\eta_{1,2}$ ?
 
 ## Distribution of interest parameter $\boldsymbol{\beta}$ may be elicited through Gibbs sampling (1,5 page)
 
@@ -34,11 +75,11 @@ The article studies **how to put Elasticnet quantile regression into a Bayesian 
 
 From the project instructions
 
-- [ ] The project length has to be about 5 pages (plus code)
-- [ ] Any language among Python, $\mathrm{R}$ or Matlab
-- [ ] Due date of the project is January 15,2023 . By the due date please upload
-- [ ] report as a pdf named SurnameStudent1_SurnameStudent2,
-- [ ] a zipped folder SurnameStudent1_SurnameStudent2 containing your code and a detailed readme file with instructions to run the code
+-   [ ] The project length has to be about 5 pages (plus code)
+-   [ ] Any language among Python, $\mathrm{R}$ or Matlab
+-   [ ] Due date of the project is January 15,2023 . By the due date please upload
+-   [ ] report as a pdf named SurnameStudent1_SurnameStudent2,
+-   [ ] a zipped folder SurnameStudent1_SurnameStudent2 containing your code and a detailed readme file with instructions to run the code
 
 ### Arthur's notes
 
