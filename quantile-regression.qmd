@@ -6,7 +6,7 @@ date-format: "MMMM, YYYY"
 bibliography: quantile-regression.bib
 ---
 
-This reports reproduces the results @2010-quantile-regression, focussing on their extension of the quantile regression with Elasticnet regularisation in a Bayesian framework. Regression is the idea that, for an outcome $y\in\mathbb{R}$ and associated inputs $\mathbf{x}\in\mathbb{R}^d$ ($d \in \mathbb{N}_\star$), we may suppose that in some sense $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$. Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$ classical regression estimates the unknown parameter $\boldsymbol{\beta}$ by setting: $$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$${#eq-classical-regression} ... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least squares. In a **quantile regression**, one rather opts for the asymmetric "check loss" : $$\ell_\theta(a,b)=\left\{\begin{array}{cl}\theta (a-b), & \text { if } a \geqslant b \\ -(1-\theta) (a-b), & \text { if }  a<b\end{array}\right.$$ ... with $\theta\in(0,1)$, which generalises absolute loss $\ell_0(a,b)=|a-b|$ leading to so-called median regression. (Note that $\ell_0$ is proportional to $\ell_\theta$ with $\theta=0.5$ and that the proportionality coefficient does not matter in @eq-classical-regression, so the two losses are completely interchangeable.)
+This reports reproduces the results @2010-quantile-regression, focussing on their extension of the quantile regression with Elasticnet regularisation in a Bayesian framework. Regression is the idea that, for an outcome $y\in\mathbb{R}$ and associated inputs $\mathbf{x}\in\mathbb{R}^d$ ($d \in \mathbb{N}_\star$), we may suppose that in some sense $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$. Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$ classical regression estimates the unknown parameter $\boldsymbol{\beta}$ by setting: $$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$$ {#eq-classical-regression} ... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least squares. In a **quantile regression**, one rather opts for the asymmetric "check loss" : $$\ell_\theta(a,b)=\left\{\begin{array}{cl}\theta (a-b), & \text { if } a \geqslant b \\ -(1-\theta) (a-b), & \text { if }  a<b\end{array}\right.$$ ... with $\theta\in(0,1)$, which generalises absolute loss $\ell_0(a,b)=|a-b|$ leading to so-called median regression. (Note that $\ell_0$ is proportional to $\ell_\theta$ with $\theta=0.5$ and that the proportionality coefficient does not matter in @eq-classical-regression, so the two losses are completely interchangeable.)
 
 Next, Elasticnet regularisation consists into constraining the values of $\boldsymbol{\beta}$ not to move too far away from the origin, in the sense that both $\|\boldsymbol{\beta}\|_1$ (the taxicab distance from the origin) and $\|\boldsymbol{\beta}\|_2^2$ (the square of the distance to the origin) are small. This leads to the final problem: $$\hat{\boldsymbol{\beta}}_n(\lambda_1,\lambda_2,\theta)=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})+\lambda_1\|\boldsymbol{\beta}\|_1+\lambda_2\|\boldsymbol{\beta}\|^2_2$$ ... where $\lambda_1$ and $\lambda_2$ control how stringent each regularisation is (less strigent as $\lambda \to 0$).
 
@@ -91,7 +91,7 @@ Focus on prediction accuracy (not on reconstruction validity or inference).
 
 ### Time accounting
 
-| Student  | Time spent so far |
-|--------|-------:|
-| Lucie  |      ? |
-| Arthur |     3h |
+| Student | Time spent so far |
+|---------|------------------:|
+| Lucie   |                5h |
+| Arthur  |                3h |
