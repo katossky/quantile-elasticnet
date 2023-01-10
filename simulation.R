@@ -25,7 +25,7 @@ u <- xi1 * v_bar + xi2 * sqrt(v_bar / tau0) * z
 x <- matrix(rnorm(n*p), nrow=n, ncol=p)
 y <- x %*% beta0 + u
 
-########################### Lois Conditionnelles ###############################
+########################### Fonction Update ###############################
 
 a <- 1
 b <- 1
@@ -34,12 +34,6 @@ c2 <- 1
 d1 <- 1
 d2 <- 1
 
-# initialisation des paramètres 
-tau <- rgamma(1, shape=a, rate=b)
-eta1 <- rgamma(1, shape=c1, rate=d1)
-eta2 <- rgamma(1, shape=c2, rate=d2)
-eta1_bar <- (eta1**2) / (4*eta2)
-beta <- rep(0, p)
 
 Gibbs_update <- function(tau, eta1_bar, eta2, beta){
     # v_bar 
@@ -86,15 +80,36 @@ Gibbs_update <- function(tau, eta1_bar, eta2, beta){
     return( c(new_tau, new_eta1_bar, new_eta2, new_beta) )
 }
 
-res <- Gibbs_update(tau, eta1_bar, eta2, beta)
-tau <- res[1]
-eta1_bar <- res[2]
-eta2 <- res[3]
-beta <- res[-c(1:3)]
+########################### Simulation ###############################
 
-eta2
-beta
+# initialisation des paramètres 
+tau <- rgamma(1, shape=a, rate=b)
+eta1 <- rgamma(1, shape=c1, rate=d1)
+eta2 <- rgamma(1, shape=c2, rate=d2)
+eta1_bar <- (eta1**2) / (4*eta2)
+beta <- rep(0, p)
 
 r_gibbs <- 1000
+tau_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+eta1_bar_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+eta2_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+beta_gibbs <- matrix(nrow=r_gibbs, ncol=p)
 
+for(r in 1:r_gibbs){
+    res <- Gibbs_update(tau, eta1_bar, eta2, beta)
+    
+    tau <- res[1]
+    eta1_bar <- res[2]
+    eta2 <- res[3]
+    beta <- res[-c(1:3)]
+    
+    tau_gibbs[r] <- tau
+    eta1_bar_gibbs[r] <- eta1_bar
+    eta2_gibbs[r] <- eta2
+    beta_gibbs[r] <- beta
+}
+
+########################### Analyse ###############################
+
+# auto-corrélations / burn-in ?
 
