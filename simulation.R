@@ -1,6 +1,7 @@
 rm()
 
 library('statmod')
+library('GIGrvg')
 
 ########################### Simulation des données #############################
 
@@ -42,13 +43,12 @@ beta <- rep(0, p)
 
 Gibbs_update <- function(tau, eta1_bar, eta2, beta){
     # v_bar 
-    lambda <- tau * (y - x%*%beta)**2 / (xi2 ** 2)
-    mu2 <- lambda / ( (tau * xi1**2)/xi2**2 + 2*tau ) 
-    mu <- sqrt(mu2)
+    chi_v <- tau * (y - x%*%beta)**2 / (xi2 ** 2)
+    psi_v <-(tau * xi1**2)/xi2**2 + 2*tau 
     
     v_bar <- rep(0,n)
     for(i in 1:n){
-      v_bar[i] <- rinvgauss(1, mean = mu[i], shape = lambda[i])
+      v_bar[i] <- rgig(1, lambda=1/2, chi=chi_v[i], psi=psi_v)
     }
     
     # y_bar
@@ -58,7 +58,13 @@ Gibbs_update <- function(tau, eta1_bar, eta2, beta){
     }
     
     # t
-    t <- rep(2, p) ### A completer
+    chi_t <- 2 * eta2 * (beta**2)
+    psi_t <- 2 * eta1_bar
+    
+    t <- rep(0, p)
+    for(k in 1:p){
+      t[k] <- 1 + rgig(1, lambda=1/2, chi=chi_t[k], psi=psi_t)
+    }
     
     # Beta
     sigma_inv2 <- tau * xi2**(-2) * colSums((x**2) * v_bar**(-1)) + 2 * eta2 * t*(t - 1)**(-1)
@@ -85,6 +91,9 @@ tau <- res[1]
 eta1_bar <- res[2]
 eta2 <- res[3]
 beta <- res[-c(1:3)]
+
+eta2
+beta
 
 r_gibbs <- 1000
 
