@@ -117,35 +117,80 @@ Gibbs_update <- function(tau, eta1_bar, eta2, beta){
 
 ########################### Simulation ###############################
 
-# initialisation des paramètres 
-tau <- rgamma(1, shape=a, rate=b)
-eta1 <- rgamma(1, shape=c1, rate=d1)
-eta2 <- rgamma(1, shape=c2, rate=d2)
-eta1_bar <- (eta1**2) / (4*eta2)
-beta <- rep(1, p)
+Generation_Gibbs <- function(r_gibbs, burnin=0, autocorr=0){
 
-r_gibbs <- 100
-tau_gibbs <- matrix(nrow=r_gibbs, ncol=1)
-eta1_bar_gibbs <- matrix(nrow=r_gibbs, ncol=1)
-eta2_gibbs <- matrix(nrow=r_gibbs, ncol=1)
-beta_gibbs <- matrix(nrow=r_gibbs, ncol=p)
+  # initialisation des paramètres 
+  tau <- rgamma(1, shape=a, rate=b)
+  eta1 <- rgamma(1, shape=c1, rate=d1)
+  eta2 <- rgamma(1, shape=c2, rate=d2)
+  eta1_bar <- (eta1**2) / (4*eta2)
+  beta <- rep(1, p)
 
-for(r in 1:r_gibbs){
+  # tables vides
+  tau_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+  eta1_bar_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+  eta2_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+  beta_gibbs <- matrix(nrow=r_gibbs, ncol=p)
+
+  # burn in :
+  for(r in 1:burnin){
     res <- Gibbs_update(tau, eta1_bar, eta2, beta)
     
     tau <- res[1]
     eta1_bar <- res[2]
     eta2 <- res[3]
     beta <- res[-c(1:3)]
+  }
+  
+  # gibbs sampling :
+  for(r in 1:r_gibbs){
+      for(j in 1:(1+autocorr)){
+        res <- Gibbs_update(tau, eta1_bar, eta2, beta)
     
-    tau_gibbs[r] <- tau
-    eta1_bar_gibbs[r] <- eta1_bar
-    eta2_gibbs[r] <- eta2
-    beta_gibbs[r,] <- beta
-}
+        tau <- res[1]
+        eta1_bar <- res[2]
+        eta2 <- res[3]
+        beta <- res[-c(1:3)]
+      }
+    
+      tau_gibbs[r] <- tau
+      eta1_bar_gibbs[r] <- eta1_bar
+      eta2_gibbs[r] <- eta2
+      beta_gibbs[r,] <- beta
+  }
+  
+  return(cbind(tau_gibbs, eta1_bar_gibbs, eta2_gibbs, beta_gibbs))
 
-########################### Analyse ###############################
+}
+################## paramétrisation burn-in & corrélations ######################
+r_gibbs = 1000
+
+ls <- Generation_Gibbs(r_gibbs)
+tau_gibbs <- ls[,1]
+eta1_bar_gibbs <- ls[,2]
+eta2_gibbs <- ls[,3]
+beta_gibbs <- ls[,-c(1:3)]
+
+hist(tau_gibbs)
+hist(eta1_bar_gibbs)
+hist(eta2_gibbs)
+hist(beta_gibbs[,1])
+hist(beta_gibbs[,3])
 
 # auto-corrélations / burn-in ?
-hist(beta_gibbs[,1])
-plot(1:r_gibbs,beta_gibbs[1:r_gibbs,1])
+plot(1:30,beta_gibbs[1:30,1]) 
+plot(1:30,beta_gibbs[1:30,3])
+plot(1:30,tau_gibbs[1:30]) 
+plot(1:200,eta1_bar_gibbs[1:200]) 
+plot(1:200,eta2_gibbs[1:200]) 
+  # --> burn-in : enlever 10 premières valeurs 
+
+acf(beta_gibbs[,1])
+acf(beta_gibbs[,3])
+acf(tau_gibbs)
+acf(eta1_bar_gibbs)
+acf(eta2_gibbs)
+  # --> correlations : prendre une valeur toutes les 5 ou 10 valeurs 
+
+################################ Analyse #################################
+
