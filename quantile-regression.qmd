@@ -93,5 +93,5 @@ Focus on prediction accuracy (not on reconstruction validity or inference).
 
 | Student | Time spent so far |
 |---------|------------------:|
-| Lucie   |                5h |
+| Lucie   |                7h |
 | Arthur  |                3h |
