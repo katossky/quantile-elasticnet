@@ -101,7 +101,6 @@ tau_update <- function(v_bar, beta){
   return(tau)
 }
 
-
 Gibbs_update <- function(tau, eta1_bar, eta2, beta){
     
     v_bar <- v_bar_update(tau, beta)
@@ -116,6 +115,10 @@ Gibbs_update <- function(tau, eta1_bar, eta2, beta){
 }
 
 ########################### Simulation ###############################
+
+# pour un échantillon iid prendre 
+#           burnin = 10 
+#           autocorr = 10
 
 Generation_Gibbs <- function(r_gibbs, burnin=0, autocorr=0){
 
@@ -162,6 +165,7 @@ Generation_Gibbs <- function(r_gibbs, burnin=0, autocorr=0){
   return(cbind(tau_gibbs, eta1_bar_gibbs, eta2_gibbs, beta_gibbs))
 
 }
+
 ################## paramétrisation burn-in & corrélations ######################
 r_gibbs = 1000
 
@@ -170,12 +174,6 @@ tau_gibbs <- ls[,1]
 eta1_bar_gibbs <- ls[,2]
 eta2_gibbs <- ls[,3]
 beta_gibbs <- ls[,-c(1:3)]
-
-hist(tau_gibbs)
-hist(eta1_bar_gibbs)
-hist(eta2_gibbs)
-hist(beta_gibbs[,1])
-hist(beta_gibbs[,3])
 
 # auto-corrélations / burn-in ?
 plot(1:30,beta_gibbs[1:30,1]) 
@@ -193,4 +191,29 @@ acf(eta2_gibbs)
   # --> correlations : prendre une valeur toutes les 5 ou 10 valeurs 
 
 ################################ Analyse #################################
+
+r_gibbs = 1000
+burnin = 10
+autocorr = 10
+
+ls <- Generation_Gibbs(r_gibbs, burnin, autocorr)
+tau_gibbs <- ls[,1]
+eta1_bar_gibbs <- ls[,2]
+eta2_gibbs <- ls[,3]
+beta_gibbs <- ls[,-c(1:3)]
+
+hist(tau_gibbs)
+hist(eta1_bar_gibbs)
+hist(eta2_gibbs)
+hist(beta_gibbs[,1])
+hist(beta_gibbs[,3])
+
+# estimateurs :
+sprintf('variable tau : moyenne %f, écart-type %f', mean(tau_gibbs), sd(tau_gibbs))
+sprintf('variable eta1 : moyenne %f, écart-type %f', mean(eta1_bar_gibbs), sd(eta1_bar_gibbs))
+sprintf('variable eta2 : moyenne %f, écart-type %f', mean(eta2_gibbs), sd(eta2_gibbs))
+
+sprintf('variable beta1 : moyenne %f, écart-type %f', mean(beta_gibbs[,1]), sd(beta_gibbs[,1]))
+sprintf('variable beta2 : moyenne %f, écart-type %f', mean(beta_gibbs[,2]), sd(beta_gibbs[,2]))
+sprintf('variable beta3 : moyenne %f, écart-type %f', mean(beta_gibbs[,3]), sd(beta_gibbs[,3]))
 
