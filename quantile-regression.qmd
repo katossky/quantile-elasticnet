@@ -4,34 +4,135 @@ authors: "Lucie Tournier & Arthur Katossky"
 date: "December 2022"
 date-format: "MMMM, YYYY"
 bibliography: quantile-regression.bib
+format:
+  pdf:
+    pdf-engine: pdflatex
+    include-in-header:
+      text: |
+        \usepackage{amsmath}
+        \usepackage{bbm}
+        \usepackage{xcolor}
+    classoption:
+      - twocolumn
 ---
 
-This reports reproduces the results @2010-quantile-regression, focussing on their extension of the quantile regression with Elasticnet regularisation in a Bayesian framework. Regression is the idea that, for an outcome $y\in\mathbb{R}$ and associated inputs $\mathbf{x}\in\mathbb{R}^d$ ($d \in \mathbb{N}_\star$), we may suppose that in some sense $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$. Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$ classical regression estimates the unknown parameter $\boldsymbol{\beta}$ by setting: $$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$$ {#eq-classical-regression} ... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least squares. In a **quantile regression**, one rather opts for the asymmetric "check loss" : $$\ell_\theta(a,b)=\left\{\begin{array}{cl}\theta (a-b), & \text { if } a \geqslant b \\ -(1-\theta) (a-b), & \text { if }  a<b\end{array}\right.$$ ... with $\theta\in(0,1)$, which generalises absolute loss $\ell_0(a,b)=|a-b|$ leading to so-called median regression. (Note that $\ell_0$ is proportional to $\ell_\theta$ with $\theta=0.5$ and that the proportionality coefficient does not matter in @eq-classical-regression, so the two losses are completely interchangeable.)
+This reports reproduces the results @2010-quantile-regression, focussing on their extension of the quantile regression with Elasticnet regularisation in a Bayesian framework. Regression is the idea that, for an outcome $y\in\mathbb{R}$ and associated inputs $\mathbf{x}\in\mathbb{R}^d$ ($d \in \mathbb{N}_\star$), we may suppose that in some sense $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$, for some real vector $\boldsymbol{\beta}\in\mathbb{R}^d$. Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$, classical regression consists in estimating the unknown parameter $\boldsymbol{\beta}$ by setting: $$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$${#eq-classical-regression} ... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least-squares regression. In a **quantile regression**, one rather opts for the asymmetric "check loss" : $$\ell_\theta(a,b)=\left\{\begin{array}{cl}\theta (a-b), & \text { if } a \geqslant b \\ -(1-\theta) (a-b), & \text { if }  a<b\end{array}\right.$$ ... with $\theta\in(0,1)$, which generalises absolute loss $\ell_0(a,b)=|a-b|$ leading to so-called median regression^[Note that $\ell_0$ is proportional to $\ell_\theta$ with $\theta=0.5$ and that the proportionality coefficient does not matter in @eq-classical-regression, so the two losses are completely interchangeable.].
 
-Next, Elasticnet regularisation consists into constraining the values of $\boldsymbol{\beta}$ not to move too far away from the origin, in the sense that both $\|\boldsymbol{\beta}\|_1$ (the taxicab distance from the origin) and $\|\boldsymbol{\beta}\|_2^2$ (the square of the distance to the origin) are small. This leads to the final problem: $$\hat{\boldsymbol{\beta}}_n(\lambda_1,\lambda_2,\theta)=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})+\lambda_1\|\boldsymbol{\beta}\|_1+\lambda_2\|\boldsymbol{\beta}\|^2_2$$ ... where $\lambda_1$ and $\lambda_2$ control how stringent each regularisation is (less strigent as $\lambda \to 0$).
+Next, Elasticnet regularisation consists into constraining the values of $\boldsymbol{\beta}$ not to move too far away from the origin, in the sense that both $\|\boldsymbol{\beta}\|_1$ (the taxicab distance from the origin) and $\|\boldsymbol{\beta}\|_2^2$ (the square of the distance to the origin) are small. This leads to the final problem: $$\begin{aligned}
+\hat{\boldsymbol{\beta}}_n(\lambda_1,\lambda_2,\theta)= \\ \arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})+\lambda_1\|\boldsymbol{\beta}\|_1+\lambda_2\|\boldsymbol{\beta}\|^2_2
+\end{aligned}$${#eq-classical-elasticnet} ... where $\lambda_1$ and $\lambda_2$ control how stringent each regularisation is (less strigent as $\lambda \to 0$).
 
-The article studies **how to put Elasticnet quantile regression into a Bayesian paradigm**, thus allowing for priors over the distributions of both $\boldsymbol{\beta}$ and the approximation error in $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$.
+The article studies **how to put Elasticnet quantile regression into a Bayesian paradigm**, thus allowing for priors over the distributions of both $\boldsymbol{\beta}$ and the approximation error in $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$. One of the advantages of the Bayesian paradigm is to obtain exact distributions for the parameter $\boldsymbol{\beta}$.
 
 ## Putting regularised quantile regression (Elasticnet) into the Bayesian formalism (1 page)
 
 > Definition of the problem under study and explanation of why it is interesting
 
-We assume the following model for our $\theta^{th}$-quantile regression of the variables $y_i$ over $x_i$: $$ y_i = x_i^T \boldsymbol{\beta} + u_i. $$ We further assume that the residuals $u_i$ of the regression follow a skewed Laplace distribution with parameter $\tau$: $$f(u|\tau) = \theta(1 - \theta) \tau \exp(-\tau \ell_\theta(u)).$$
+How can we reinterpret @eq-classical-elasticnet in a Bayesian framework? First notice that:
+\begin{align*}
+& \arg \min \sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta}) \\
+& \iff \arg \max \prod_{i=1}^n \exp (-\ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta}))
+\end{align*} This means that the exponential-negative transform allows us to re-interpret error minimisation as the maximisation of some joint probability, under well-chosen priors. The question is how to choose the priors !
 
-Fixing a parameterized distribution on the residuals $u_i$ ensures a tractable expression for the likelihood function of our parameter of interest $\beta$ given a dataset of size $n$ : $$ \mathcal{L}(\beta) = \theta^n (1 - \theta)^n \tau^n \exp\bigg\{-\tau \sum_{i=1}^n \ell_\theta(y_i - x_i^T \boldsymbol{\beta} ) \bigg\}.$$
+Let's define the prediction error $u\overset{\Delta}=y-\mathbf{x}^\top\boldsymbol{\beta}$ and let suppose that $u$ follows a (centred) skewed Laplace distribution with parameters $(0,\tau,\theta)$. That is, with $\tau>0$ and $\theta>0$ and $\forall u \in \mathbb{R}$: $$\pi(u|\tau) = \theta(1 - \theta) \tau \exp(-\tau \ell_\theta(u)).$$
+Then we get the following joint posterior on the sample $(y_i,\mathbf{x}_i)_{i=1..n}$:
+\begin{align*}
+& f(\boldsymbol{\beta}\mid y_1...y_n,\mathbf{x}_1...\mathbf{x}_n ; \tau ; \theta) \\
+& = \theta^n (1 - \theta)^n \tau^n \exp\bigg\{-\tau \sum_{i=1}^n \ell_\theta(y_i - \mathbf{x}_i^\top \boldsymbol{\beta} ) \bigg\}
+\end{align*}
+Maximizing this expression is equivalent to @eq-classical-elasticnet without the penalties since we can discard all the (strictly positive) multiplicative constants in front and inside of the exponential.
 
-In this framework, the regularization of the elasticnet quantile regression can be interpreted as the maximization of the posterior distribution in a specific Bayesian modelling of the regression problem. Indeed, we may set a prior distribution on our parameter of interest $\boldsymbol{\beta}$ of the form :
+What about the two penalty terms $\lambda_1\|\boldsymbol{\beta}\|_1$ and $\lambda_2\|\boldsymbol{\beta}\|^2_2$? Setting a prior on $\boldsymbol{\beta}$ of the form: 
+\begin{align*}
+& \pi(\boldsymbol{\beta} | \eta_1,\eta_2) \\
+& \propto \exp \Big\{-\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\}
+\end{align*}
+… leads to the posterior distribution:
+\begin{align*}
+& \pi(\boldsymbol{\beta} |y_1...y_n, \mathbf{x}_1 ... \mathbf{x}_n ; \eta_1,\eta_2,\tau ; \theta) \\
+& \propto { \scriptstyle \exp \Big\{ - \tau \sum_{i=1}^n \ell_\theta(y_i - x_i^\top\boldsymbol{\beta})
+-\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\} }\end{align*}
+… which is almost what we where looking for! If we set $\lambda_\bullet\overset{\Delta}=\frac{\eta_\bullet}{\tau}$, we get $\eta_\bullet=\lambda_\bullet\tau$ and we can factorise $\tau$ inside the exponential. As $\tau>0$, maximising this expression is exactly equivalent to @eq-classical-elasticnet.
 
-$$ \pi_0(\boldsymbol{\beta} | \eta_1,\eta_2) \propto \exp \Big\{-\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\} $$.
+These calculations give us, under the assumption of the skewed Laplace distribution for the residuals, an explicit expression for the distribution of the estimator $\hat{\boldsymbol{\beta}}_n\overset{\Delta}=\boldsymbol{\beta}\mid y_1...y_n, \mathbf{x}_1 ... \mathbf{x}_n$ in the quantile regression with elastic-net regularisation _conditionnally on_ the quantile $\theta$ and the regularisation parameters $\lambda_1$ and $\lambda_2$ (or $\eta_1$, $\eta_2$ and $\tau$).
 
-This leads to the following posterior distribution on $\beta$ :
+Notice that there is a fundamental asymmetry in the parameters. The $\theta \in (0,1)$ parameter is fixed in advanced and will always stay like that : it is the level of the quantile regression. Thus we will always reason "conditionally to $\theta$". However, this is not the case for penalty coefficients $\lambda_1$ and $\lambda_2$ (or the three coefficients $\eta_1, \eta_2, \tau$). In a frequentist context we generally think of the penalty as fixed, but more often than not in practice we actually consider that different types of data need different amount of regularisation and we "fine-tune" these coefficients to achieve minimal error on hold-out samples. Thus, $\lambda_1$ and $\lambda_2$ may be thought of as true Bayesian parameters whose distribution will get more precise when confronted to data.
 
-$$ \pi(\beta |y_i, x_i, \theta, \eta_1,\eta_2) \propto \exp \Big\{ - \tau \sum_{i=1}^n \ell_\theta(y_i - x_i^T\boldsymbol{\beta})
--\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\} $$.
+This has two consequences:
 
-Solving the maximum for this expression is equivalent to the minimization task defined eq...
+1. we need to specify an _a priori_ distribution for $(\lambda_1,\lambda_2)$ or $(\tau, \eta_1, \eta_2)$
+2. for many such distributions, the (unconditional) _a posteriori_ distribution of $\boldsymbol{\hat{\beta}}_n\mid \theta$ will be computationally intractable
 
-These calculations give us, under the assumption of the skewed Laplace distribution for the residuals, an explicit expression for the distribution of the estimator $\boldsymbol{\hat{\beta}}$ in the quantile regression with elastic-net regularisation. This will allow us to draw samples from the distribution of $\boldsymbol{\hat{\beta}}$ with a Gibbs algorithm.
+We thus need to resort to computational methods to sort out the posterior unconditional distribution, and the Gibbs algorithm seems perfectly suited for this as we readily have a closed form for the conditional $\boldsymbol{\beta} |y_1...y_n, \mathbf{x}_1 ... \mathbf{x}_n ; \eta_1,\eta_2 ; \theta$.
+
+## Distribution of interest parameter $\boldsymbol{\beta}$ may be elicited through Gibbs sampling (1,5 page)
+
+> Choice of the appropriate Bayesian technique (you should explain the methodology used and the motivation why you have chosen it)
+
+Specifying the full Bayesian model is far from done. First, the authors show that $u\sim \text{Laplace}(0,\tau,\theta)$ can be re-written as : $$\tau u=\xi_1 v+\xi_2 \, \sqrt{v}\; z$$ where $v\sim\mathcal{E}(1)$ and $z\sim\mathcal{N}(0,1)$, and where $\xi_1=\frac{1-2 \theta}{\theta(1-\theta)}$ and $\xi_2=\sqrt{\frac{2}{\theta(1-\theta)}}$. Now writing $\tilde v\overset{\Delta}=v/\tau$, we get both $\tilde v\mid \tau\sim\mathcal{E}(1/\tau)$ and: $$u=\xi_1\tilde v+(\xi_2/\sqrt{\tau})\;\sqrt{\tilde{v}} \;z$$
+
+The full hierarchical model is the following^[For reasons just stated, $\theta$ is now omitted in the conditioning and considered a constant.]:
+\begin{align*}
+y & = && \mathbf{x}_i^\top \boldsymbol{\beta}+\xi_1 \tilde{v}_i+\xi_2 \tau^{-1 / 2} \sqrt{\tilde{v}_i} z_i \\
+\tilde v \mid \tau & \sim && \mathcal{E}(1/\tau) \\
+\tilde z & \sim && \mathcal{N}(0,1) \\
+\tau & \sim && \mathrm{Gamma}(a,b) \propto \tau^{a-1}\mathrm{e}^{-b\tau} \\
+\tilde{\eta}_1 & \sim && \mathrm{Gamma}(c_1,d_1) \\
+\eta_2 & \sim && \mathrm{Gamma}(c_2,d_2) \\
+t_k | \tilde{\eta}_1 & \overset{\perp\!\!\!\perp}\sim && \Gamma^{-1}(1/2, \tilde{\eta}_1) t_k^{-1/2} \tilde{\eta}_1^{-1/2} \exp(-\tilde{\eta}_1t_k) \\ &&& \times \mathbbm{1}(t_k>1) \\
+\beta_k | t_k, \eta_2 & \sim && \frac{1}{\sqrt{2\pi(t_k - 1)/(2\eta_2t_k)}}  \\
+&&& \times \exp\left\{ -\frac{1}{2} \left( \frac{t_k-1}{2\eta_2t_k}\right)^{-1} \beta_k^2 \right\}
+\end{align*}
+
+
+$\tilde{\eta}_1=\eta_1^2 /\left(4 \eta_2\right)$ ; this comes from the computation of the constant in $
+$\pi(\boldsymbol{\beta} | \eta_1,\eta_2)$.
+
+... where $\mathbf{z}$ and $\mathbf{t}$ are latent variables introduced for analytical reasons, $a,b,c_1,c_2,d_2,d_2$ are strictly positive constants arbitrarily chosen and $\Gamma()$ is the upper incomplete gamma function.
+
+
+The conditional posteriors are given by: $$\begin{aligned}
+t_k-1 \mid \mathbf{y}, \mathbf{X}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}_{-k}, \tau, \tilde{\eta}_1, \eta_2 \\
+\overset{\propto}\sim \frac{1}{\sqrt{t_k-1}} \mathbbm{1}\left(t_k>1\right) \\ \times \exp \left\{-\frac{1}{2}\left(\frac{t_k-1}{2 \eta_2 t_k}\right)^{-1} \beta_k^2 -\tilde{\eta}_1 t_k\right\} \\
+\beta_k \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}_{-k}, \mathbf{t}, \tau, \tilde{\eta}_1, \eta_2 \\
+\sim \mathcal{N}(\tilde{\mu}_k, \tilde{\sigma}^2_k) \\
+\tau\mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tilde{\eta}_1, \eta_2 \\
+\sim \mathrm{Gamma}(a\textcolor{red}{+\frac{3n}{2}-1}, \tilde b ) \\
+\eta_2\mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \tilde{\eta}_1 \\
+\sim \mathrm{Gamma}(c_2\textcolor{red}{+\frac{p}{2}-1},d_2\textcolor{red}{+\sum_{k=1}^p \frac{t_k}{t_k-1} \beta_k^2} ) \\
+\tilde{v}_i \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}_{-i}, \boldsymbol{\beta}, \mathbf{s}, \tau, \eta^2 \\ \overset{\propto}\sim \frac{1}{\sqrt{\tilde{v}_i}} \exp \left\{-\frac{1}{2}\left[\left(\frac{\tau \xi_1^2}{\xi_2^2}+2 \tau\right) \tilde{v}_i+\frac{\tau u_i^2}{\tilde{v}_i\xi_2^2}\right]\right\} \\
+\end{aligned}$$
+
+... where $$\begin{aligned}
+\tilde b & = b\textcolor{red}{+\sum_{i=1}^n\left(\frac{\left(y_i-\mathbf{x}_i^\top \boldsymbol{\beta}-\xi_1 \tilde{v}_i\right)^2}{2 \xi_2^2 \tilde{v}_i}+\tilde{v}_i\right)} \\
+\tilde \mu_k & = \\
+\tilde \sigma_k^2 & = \\
+u_i = 
+\end{aligned}$$
+
+$$\begin{aligned}
+f\left(\tilde{\eta}_1 \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \eta_2\right) & \propto \tilde{\eta}_1^{c_1-1} \exp \left(-d_1 \tilde{\eta}_1\right) \prod_{k=1} \Gamma^{-1}\left(1 / 2, \tilde{\eta}_1\right) \tilde{\eta}_1^{1 / 2} \exp \left\{-\tilde{\eta}_1 t_k\right\} \\
+& \propto \Gamma^{-p}\left(1 / 2, \tilde{\eta}_1\right) \tilde{\eta}_1^{p / 2+c_1-1} \exp \left\{-\tilde{\eta}_1\left[d_1+\sum_{k=1}^p t_k\right]\right\}
+\end{aligned}$$
+
+$t_k=1+2 \eta_2 s_k$
+
+\begin{align*}
+y_i & = && \mathbf{x}_i^\top \boldsymbol{\beta}+\xi_1 \tilde{v}_i+\xi_2 \tau^{-1 / 2} \sqrt{\tilde{v}_i} z_i \\
+\tilde{\mathbf{v}} \mid \tau & \sim && \prod_{i=1}^n \tau \exp \left(-\tau \tilde{v}_i\right) \\
+\mathbf{z} & \sim && \prod_{i=1}^n \frac{1}{\sqrt{2 \pi}} \exp \left(-\frac{1}{2} z_i^2\right) \\
+\tau & \sim && \mathrm{Gamma}(a,b) \propto \tau^{a-1}\mathrm{e}^{-b\tau} \\
+\tilde{\eta}_1 & \sim && \mathrm{Gamma}(c_1,d_1) \\
+t_k | \tilde{\eta}_1 & \overset{\perp\!\!\!\perp}\sim && \Gamma^{-1}(1/2, \tilde{\eta}_1) t_k^{-1/2} \tilde{\eta}_1^{-1/2} \exp(-\tilde{\eta}_1t_k) \\ &&& \times \mathbbm{1}(t_k>1) \\
+\end{align*}
+
+\begin{align*}
+f\left(\eta_2 \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \tilde{\eta}_1\right) & \propto \eta_2^{c_2-1} \exp \left(-d_2 \eta_2\right) \prod_{k=1}^p \eta_2^{1 / 2} \exp \left\{-\frac{1}{2}\left(\frac{t_k-1}{2 \eta_2 t_k}\right)^{-1} \beta_k^2\right\} \\
+& \propto \eta_2^{p / 2+c_2-1} \exp \left\{-\eta_2\left(d_2+\sum_{k=1}^p t_k\left(t_k-1\right)^{-1} \beta_k^2\right)\right\}
+\end{align*}
+
+The authors judge "difficult to directly sample from $\tilde \eta_1 \mid \mathbf{y}_n, \mathbf{X}_n, \boldsymbol{\beta}_p, \mathbf{t}_p, \eta_2, \tau; \theta$ and thus resort to one step of Metropolis-Hatings within the general Gibbs algorithm.
+
 
 Before defining the Gibbs algorithm we will use to generate samples, we will first specify our bayesian hierarchical model.
 
@@ -40,26 +141,10 @@ We reparameterize our regulation term by setting $$ \left\{ \begin{array}{l}
 \tilde{\eta_1}  = \eta_1^2/(4\eta_2) \\
 \end{array}\right.$$
 
-We then assume Gamma priors on variables $\tau$, $\tilde{\eta_1}$ and $\eta_2$ $$\left\{ \begin{array}{l}
-\tau \sim \tau^{a-1}\exp^{-b\tau} \\
-\tilde{\eta_1} \sim \tilde{\eta_1}^{c_1-1}\exp^{-d_1\tilde{\eta_1}} \\
-\eta_2 \sim \eta_2^{c_2-1}\exp^{-d_2\eta_2} 
-\end{array}\right.$$
-
-The parameters $a, b, c_1, c_2, d_1, d_2$ are fixed, non negative numbers.
-
 From these prior assumptions, we may infer the resulting conditional posterior on our parameter on interest $\boldsymbol{\beta}$. We here give the expression of the distribution of the component $\beta_k$ of $\boldsymbol{\hat{\beta}}$, conditionally to parameter $\eta_2$ and an intermediate parameter which we name $t_k$.
 
-$$\begin{array}{rcl}
-\beta_k | t_k, \eta_2 & \sim & \frac{1}{\sqrt{2\pi(t_k - 1)/(2\eta_2t_k)}} \exp\left\{ -\frac{1}{2} \left( \frac{t_k-1}{2\eta_2t_k}\right)^{-1} \beta_k^2 \right\} \\
-t_k | \tilde{\eta_1} & \sim & \Gamma^{-1}(1/2, \tilde{\eta_1}) t_k^{-1/2} \tilde{\eta_1}^{-1/2} \exp(-\tilde{\eta_1}t_k) \mathbb{I}(t_k>1)
-\end{array}$$
 
 Those last two equations, together with the gamma priors defined on variables $\tau$, $\tilde{\eta_1}$ and $\eta_2$, give us the basis of a Gibbs sampler for $\beta_k$. \> à vérifier, rajouter ici les lois conditionnelles de $\eta_{1,2}$ ?
-
-## Distribution of interest parameter $\boldsymbol{\beta}$ may be elicited through Gibbs sampling (1,5 page)
-
-> Choice of the appropriate Bayesian technique (you should explain the methodology used and the motivation why you have chosen it)
 
 ## Simulation (1,5 page)
 
@@ -88,10 +173,3 @@ From the project instructions
 Focus on prediction accuracy (not on reconstruction validity or inference).
 
 > we give a generic treatment to a set of regularization approaches, including lasso, group lasso and elastic net penalties.
-
-### Time accounting
-
-| Student | Time spent so far |
-|---------|------------------:|
-| Lucie   |                7h |
-| Arthur  |                3h |
