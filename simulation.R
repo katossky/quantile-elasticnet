@@ -1,4 +1,4 @@
-rm()
+rm(list=ls())
 
 library('statmod')
 library('GIGrvg')
@@ -57,7 +57,7 @@ data_generation <- function(n, theta, beta0=c(3, 3, 0, 3, 3), tau0=2, g_err=TRUE
   # calcul de y :
   y <- x %*% beta0 + u
   
-  return(cbind(y, x))
+  list(x=x, y=y)
 }
 
 
@@ -81,7 +81,7 @@ v_bar_update <- function(tau, beta, n, x, y, xi2, xi1){
   return(v_bar)
 }
 
-y_bar_update <- function(v_bar, beta, n, p, xi1, x){
+y_bar_update <- function(v_bar, beta, n, p, xi1, x, y){
   y_bar <- matrix(nrow=n, ncol=p)
   for(k in 1:p){
     y_bar[,k] <- y - xi1*v_bar - rowSums( t( t(x)*beta)[,-k]  )
@@ -146,7 +146,7 @@ Gibbs_update <- function(tau, eta1_bar, eta2, beta, x, y, theta){
     xi2 <- Xi2(theta)
   
     v_bar <- v_bar_update(tau, beta, n, x, y, xi2, xi1)
-    y_bar <- y_bar_update(v_bar, beta, n, p, xi1, x)
+    y_bar <- y_bar_update(v_bar, beta, n, p, xi1, x, y)
     t <- t_update(beta, eta1_bar, eta2, p)
     new_beta <- beta_update(tau, v_bar, t, y_bar, eta2, xi2, x, y, p)
     new_eta1_bar <- eta1_bar_update(t, eta1_bar, p)
@@ -175,13 +175,13 @@ Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
   eta1 <- rgamma(1, shape=c1, rate=d1)
   eta2 <- rgamma(1, shape=c2, rate=d2)
   eta1_bar <- (eta1**2) / (4*eta2)
-  beta <- rep(1, p)
+  beta <- rep(1, length(x[1,]))
 
   # tables vides
   tau_gibbs <- matrix(nrow=r_gibbs, ncol=1)
   eta1_bar_gibbs <- matrix(nrow=r_gibbs, ncol=1)
   eta2_gibbs <- matrix(nrow=r_gibbs, ncol=1)
-  beta_gibbs <- matrix(nrow=r_gibbs, ncol=p)
+  beta_gibbs <- matrix(nrow=r_gibbs, ncol=length(x[1,]))
 
   # burn in :
   for(r in 1:burnin){
@@ -210,40 +210,41 @@ Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
       beta_gibbs[r,] <- beta
   }
   
-  return(cbind(tau_gibbs, eta1_bar_gibbs, eta2_gibbs, beta_gibbs))
+  #return(cbind(tau_gibbs, eta1_bar_gibbs, eta2_gibbs, beta_gibbs))
+  list(tau = tau_gibbs, eta1_bar = eta1_bar_gibbs, eta2 = eta2_gibbs, beta = beta_gibbs)
 
 }
 
-bayesian_qreg <- function(x, y, theta, n_vals=100){
+bayesian_qreg <- function(x, y, theta, n_vals=20){
   # genere un estimateur bayesien de beta en moyennant sur n_vals valeurs generees par gibbs sampling
   # output : 
   # premiere ligne estimateur de beta
   # deuxième ligne : standard deviation
   
-  beta_ls <- Generation_Gibbs(n_vals, x, y, theta, burnin=10, autocorr=10)[,-c(1:3)]
-  mean <- colMeans(beta_ls)
-  std <- colMeans(t(t(beta_ls) - mean)**2)
+  gen <- Generation_Gibbs(n_vals, x, y, theta, burnin=10, autocorr=10)
+  mean <- colMeans(gen$beta)
+  std <- sqrt( colMeans(t(t(gen$beta) - mean)**2) )
   
-  m <- matrix(nrow=2, ncol=length(mean))
-  m[1,] <- mean
-  m[2,] <- std
+  l2 <- mean(gen$eta2 / gen$tau)
+  l1 <- mean(sqrt(4 * gen$eta2 * gen$eta1_bar) / gen$tau)
   
-  return(m)
+  list(beta_mean=mean, beta_std=std, tau=mean(gen$tau), lambda1=l1, lambda2=l2)
 }
 
 ################## paramétrisation burn-in & corrélations ######################
 
-data <- data_generation(100, theta=0.5)
-y <- data[,1]
-x <- data[,-1]
+theta = 0.5
+data <- data_generation(100, theta)
+y <- data$y
+x <- data$x
 
 r_gibbs = 200
 
-ls <- Generation_Gibbs(r_gibbs, x, y, theta)
-tau_gibbs <- ls[,1]
-eta1_bar_gibbs <- ls[,2]
-eta2_gibbs <- ls[,3]
-beta_gibbs <- ls[,-c(1:3)]
+res <- Generation_Gibbs(r_gibbs, x, y, theta)
+tau_gibbs <- res$tau
+eta1_bar_gibbs <- res$eta1_bar
+eta2_gibbs <- res$eta2
+beta_gibbs <- res$beta
 
 # auto-corrélations / burn-in ?
 plot(1:30,beta_gibbs[1:30,1]) 
@@ -260,21 +261,24 @@ acf(eta1_bar_gibbs)
 acf(eta2_gibbs)
   # --> correlations : prendre une valeur toutes les 5 ou 10 valeurs 
 
+rm(beta_gibbs, r_gibbs, data, eta1_bar_gibbs, eta2_gibbs, res, tau_gibbs, x, y, theta)
+
 ################################ Analyse #################################
 
-data <- data_generation(100, theta=0.5)
-y <- data[,1]
-x <- data[,-1]
+theta = 0.5
+data <- data_generation(100, theta)
+y <- data$y
+x <- data$x
 
 r_gibbs = 100
 burnin = 10
 autocorr = 10
 
-ls <- Generation_Gibbs(r_gibbs, x, y, theta, burnin, autocorr)
-tau_gibbs <- ls[,1]
-eta1_bar_gibbs <- ls[,2]
-eta2_gibbs <- ls[,3]
-beta_gibbs <- ls[,-c(1:3)]
+res <- Generation_Gibbs(r_gibbs, x, y, theta, burnin, autocorr)
+tau_gibbs <- res$tau
+eta1_bar_gibbs <- res$eta1_bar
+eta2_gibbs <- res$eta2
+beta_gibbs <- res$beta
 
 hist(tau_gibbs)
 hist(eta1_bar_gibbs)
@@ -291,15 +295,17 @@ sprintf('variable beta1 : moyenne %f, écart-type %f', mean(beta_gibbs[,1]), sd(
 sprintf('variable beta2 : moyenne %f, écart-type %f', mean(beta_gibbs[,2]), sd(beta_gibbs[,2]))
 sprintf('variable beta3 : moyenne %f, écart-type %f', mean(beta_gibbs[,3]), sd(beta_gibbs[,3]))
 
+rm(beta_gibbs, r_gibbs, data, eta1_bar_gibbs, eta2_gibbs, res, tau_gibbs, x, y, theta, autocorr, burnin)
+
 ######################### Estimateur avec hqreg ##########################
 
 classical_qreg <- function(x, y, theta){
-  alpha <- (10:90)*0.01
+  alpha <- c(0:16)*0.05 + rep(0.1, 17)
   
   best_error <- 10**50
   best_alpha <- 0
   best_lambda <- 0
-  best_beta <- rep(0, dim(x)[2])
+  best_beta <- rep(0, length(x[1,]))
   
   for(i in 1:length(alpha)){
     reg <- cv.hqreg(x, y, alpha=alpha[i], tau=theta, lambda.min=0.01, method='quantile', FUN='hqreg', type.measure='mse', seed=42)
@@ -314,10 +320,88 @@ classical_qreg <- function(x, y, theta){
         best_lambda <- reg$lambda.min
         best_beta <- coef(reg, lambda=best_lambda)
       }
-    
-    #return(c(best_alpha, best_lambda, best_beta))
-    return(best_beta)
   }
-  
+    list(alpha=best_alpha, lambda=best_lambda, beta=best_beta[-1])
 }
 
+######################### Fonction perte ##################################
+
+quant_loss <- function(z, theta){
+  if(z >= 0){
+    l = theta*z
+  }
+  else{
+    l = - (1 - theta)*z
+  }
+  return(l)
+}
+
+Elastic_net_loss <- function(x, y, theta, beta, l1=0, l2=0, lambda=0, alpha=0, type='bayesian'){
+  n = length(y)
+  
+  loss = 0
+  for (i in 1:n){
+    loss = loss + quant_loss(y[i] - sum(x[i,]*beta), theta) / n
+  }
+  
+  if(type=='bayesian'){
+    loss <- loss + l1*sum(beta) + l2*sum(beta*beta)
+  }
+  
+  else{
+    loss <- loss + lambda * alpha * sum(beta) + lambda * (1-alpha) * sum(beta*beta) / 2
+  }
+
+  return(loss)  
+}
+
+############################ Comparaisons ################################
+
+n_samples_train = 50
+n_samples_test = 100
+theta = 0.3
+beta0 = c(rep(3,5), rep(0, 3), rep(3, 5))
+tau0 = 2
+g_err = FALSE
+
+
+training_data <- data_generation(n_samples_train, theta, beta0,  tau0, g_err)
+x_train <- training_data$x
+y_train <- training_data$y
+
+testing_data <- data_generation(n_samples_test, theta, beta0, tau0, g_err)
+x_test <- testing_data$x
+y_test <- testing_data$y
+
+# classical regression
+t1 <- Sys.time()
+qreg <- classical_qreg(x_train, y_train, theta)
+t2 <- Sys.time()
+print(t2 - t1)
+c_loss <- Elastic_net_loss(x_test, y_test, theta, qreg$beta, lambda=qreg$lambda, alpha=qreg$alpha, type='classical')
+print(c_loss)
+   # note for g_err = FALSE / theta = 0.3
+   # elapsed time : 39s
+   # loss : 0.7
+
+# bayesian regression
+n_values = c(100, 200, 300, 400, 500)
+b_loss = rep(0,5)
+for(l in 1:5){
+    print('nb d iterations de gibbs :')
+    print(n_values[l])
+    t1 <- Sys.time()
+    bayes_qreg <- bayesian_qreg(x_train, y_train, theta, n_vals=n_values[l])
+    t2 <- Sys.time()
+    print(t2 - t1)
+    b_loss[l] <- Elastic_net_loss(x_test, y_test, theta, bayes_qreg$beta_mean, l1=bayes_qreg$lambda1, l2=bayes_qreg$lambda2)
+    print(b_loss[l])
+}
+  # note for g_err = FALSE / theta = 0.3
+  # elapsed time : ~ 1.5 s pour 100 gibbs steps
+  # loss : toujours autour de 9
+
+sum((bayes_qreg$beta_mean - beta0)**2) 
+sum((qreg$beta - beta0)**2)
+# --> la méthode bayésienne est plus proche !
+# revoir calcul des lambdas
