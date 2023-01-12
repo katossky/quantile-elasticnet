@@ -3,6 +3,7 @@ rm()
 library('statmod')
 library('GIGrvg')
 library('mvtnorm')
+library('hqreg')
 
 ########################### Génération des données #############################
 
@@ -213,6 +214,23 @@ Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
 
 }
 
+bayesian_qreg <- function(x, y, theta, n_vals=100){
+  # genere un estimateur bayesien de beta en moyennant sur n_vals valeurs generees par gibbs sampling
+  # output : 
+  # premiere ligne estimateur de beta
+  # deuxième ligne : standard deviation
+  
+  beta_ls <- Generation_Gibbs(n_vals, x, y, theta, burnin=10, autocorr=10)[,-c(1:3)]
+  mean <- colMeans(beta_ls)
+  std <- colMeans(t(t(beta_ls) - mean)**2)
+  
+  m <- matrix(nrow=2, ncol=length(mean))
+  m[1,] <- mean
+  m[2,] <- std
+  
+  return(m)
+}
+
 ################## paramétrisation burn-in & corrélations ######################
 
 data <- data_generation(100, theta=0.5)
@@ -244,6 +262,10 @@ acf(eta2_gibbs)
 
 ################################ Analyse #################################
 
+data <- data_generation(100, theta=0.5)
+y <- data[,1]
+x <- data[,-1]
+
 r_gibbs = 100
 burnin = 10
 autocorr = 10
@@ -268,3 +290,34 @@ sprintf('variable eta2 : moyenne %f, écart-type %f', mean(eta2_gibbs), sd(eta2_
 sprintf('variable beta1 : moyenne %f, écart-type %f', mean(beta_gibbs[,1]), sd(beta_gibbs[,1]))
 sprintf('variable beta2 : moyenne %f, écart-type %f', mean(beta_gibbs[,2]), sd(beta_gibbs[,2]))
 sprintf('variable beta3 : moyenne %f, écart-type %f', mean(beta_gibbs[,3]), sd(beta_gibbs[,3]))
+
+######################### Estimateur avec hqreg ##########################
+
+classical_qreg <- function(x, y, theta){
+  alpha <- (10:90)*0.01
+  
+  best_error <- 10**50
+  best_alpha <- 0
+  best_lambda <- 0
+  best_beta <- rep(0, dim(x)[2])
+  
+  for(i in 1:length(alpha)){
+    reg <- cv.hqreg(x, y, alpha=alpha[i], tau=theta, lambda.min=0.01, method='quantile', FUN='hqreg', type.measure='mse', seed=42)
+    s <- reg$lambda == reg$lambda.min
+    error <- sum(s*reg$cve)
+    
+    print(reg$lambda.min)
+    
+      if(error < best_error){
+        best_error <- error
+        best_alpha <- alpha[i]
+        best_lambda <- reg$lambda.min
+        best_beta <- coef(reg, lambda=best_lambda)
+      }
+    
+    #return(c(best_alpha, best_lambda, best_beta))
+    return(best_beta)
+  }
+  
+}
+
