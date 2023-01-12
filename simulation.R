@@ -2,39 +2,74 @@ rm()
 
 library('statmod')
 library('GIGrvg')
+library('mvtnorm')
 
-########################### Simulation des données #############################
+########################### Génération des données #############################
 
-## choix des paramètres
-n = 500
-tau0 <- 2
-beta0 <- c(3, 3, 0, 3, 3)
-p <- length(beta0)
+# fonctions Xi
+Xi1 <- function(theta){
+  return ( (1 - 2*theta) / (theta * (1-theta)) )
+}
 
-## quantile 
-theta <- 0.5
-xi1 <- (1 - 2*theta) / (theta * (1-theta))
-xi2 <- sqrt(2 / (theta * (1-theta)))
+Xi2 <- function(theta){
+  return (sqrt(2 / (theta * (1-theta))))
+}
 
-## simulation des variables v, z, u, x, et y
-v <- rexp(n)
-v_bar <- v / tau0
-z <- rnorm(n)
-u <- xi1 * v_bar + xi2 * sqrt(v_bar / tau0) * z
+data_generation <- function(n, theta, beta0=c(3, 3, 0, 3, 3), tau0=2, g_err=TRUE){
+  # renvoie les un tableau dont la première colonne y, les colonnes suivantes x
+  # n nombre d échantillons à générer (=nombre de lignes), 
+  # theta quantile souhaité
+  
+  xi1 <- Xi1(theta)
+  xi2 <- Xi2(theta)
+  p <- length(beta0)
+  
+  # simulation des variables explicatives x
+  S <- matrix(0, nrow=p, ncol=p)
+  for(k in 1:p){
+    for(l in 1:p){
+      S[k,l] <- 0.5**abs(k-l)
+    }
+  }
+  
+  x <- matrix(0, nrow=n, ncol=p)
+  for(i in 1:n){
+    x[i,] <- rmvnorm(1, mean=rep(0, p), sigma=S)
+  }
+  
+  # simulation des erreurs 
+  
+  if(g_err==FALSE){
+  ## erreurs du modèle quantile elastic net :
+  v <- rexp(n)
+  v_bar <- v / tau0
+  z <- rnorm(n)
+  u <- xi1 * v_bar + xi2 * sqrt(v_bar / tau0) * z
+  }
+  
+  if(g_err){
+  ## erreurs gaussiennes :
+  delta <- qnorm(theta, mean=0, sd=3)
+  u <- rnorm(n, mean=-delta, sd=3)
+  }
+  
+  # calcul de y :
+  y <- x %*% beta0 + u
+  
+  return(cbind(y, x))
+}
 
-x <- matrix(rnorm(n*p), nrow=n, ncol=p)
-y <- x %*% beta0 + u
 
 ########################### Fonction Update ###############################
 
-a <- 1
-b <- 1
-c1 <- 1
-c2 <- 1
-d1 <- 1
-d2 <- 1
+a <- 0.1
+b <- 0.1
+c1 <- 0.1
+c2 <- 0.1
+d1 <- 0.1
+d2 <- 0.1
 
-v_bar_update <- function(tau, beta){
+v_bar_update <- function(tau, beta, n, x, y, xi2, xi1){
   chi_v <- tau * (y - x%*%beta)**2 / (xi2 ** 2)
   psi_v <-(tau * xi1**2)/xi2**2 + 2*tau 
   
@@ -45,7 +80,7 @@ v_bar_update <- function(tau, beta){
   return(v_bar)
 }
 
-y_bar_update <- function(v_bar, beta){
+y_bar_update <- function(v_bar, beta, n, p, xi1, x){
   y_bar <- matrix(nrow=n, ncol=p)
   for(k in 1:p){
     y_bar[,k] <- y - xi1*v_bar - rowSums( t( t(x)*beta)[,-k]  )
@@ -54,7 +89,7 @@ y_bar_update <- function(v_bar, beta){
   return(y_bar)
 }
 
-t_update <- function(beta, eta1_bar, eta2){
+t_update <- function(beta, eta1_bar, eta2, p){
   chi_t <- 2 * eta2 * (beta**2)
   psi_t <- 2 * eta1_bar
   
@@ -65,7 +100,7 @@ t_update <- function(beta, eta1_bar, eta2){
   return(t)
 }
 
-beta_update <- function(tau, v_bar, t, y_bar, eta2){
+beta_update <- function(tau, v_bar, t, y_bar, eta2, xi2, x, y, p){
   
   sigma_inv2 <- tau * xi2**(-2) * colSums((x**2) * v_bar**(-1)) + 2 * eta2 * t*(t - 1)**(-1)
   sigma_bar <- 1 / sqrt(sigma_inv2)
@@ -76,7 +111,7 @@ beta_update <- function(tau, v_bar, t, y_bar, eta2){
   return(beta)
 }
 
-eta1_bar_update <- function(t, eta1_bar){
+eta1_bar_update <- function(t, eta1_bar, p){
   # one step Metropolis Hastings
   # proposition pour new_eta1_bar :
   prop_eta1_bar <- rgamma(1, shape=c1 + p, rate=d1 + sum(t-1))
@@ -90,26 +125,32 @@ eta1_bar_update <- function(t, eta1_bar){
   return(new_eta1_bar)
 }
 
-eta2_update <- function(beta, t){
+eta2_update <- function(beta, t, p){
   eta2 <- rgamma( 1, shape=c2 + p/2, rate=d2 + sum( (beta**2)*t/(t-1) ) )
   return(eta2)
 }
 
-tau_update <- function(v_bar, beta){
+tau_update <- function(v_bar, beta, x, y, xi1, xi2, n){
   r <- b + sum( v_bar + (y - x%*%beta - xi1*v_bar)**2 / (2*v_bar*xi2**2) )
   tau <- rgamma( 1, shape=a + 3*n/2, rate= r)
   return(tau)
 }
 
-Gibbs_update <- function(tau, eta1_bar, eta2, beta){
-    
-    v_bar <- v_bar_update(tau, beta)
-    y_bar <- y_bar_update(v_bar, beta)
-    t <- t_update(beta, eta1_bar, eta2)
-    new_beta <- beta_update(tau, v_bar, t, y_bar, eta2)
-    new_eta1_bar <- eta1_bar_update(t, eta1_bar)
-    new_eta2 <- eta2_update(new_beta, t)
-    new_tau <- tau_update(v_bar, new_beta)
+Gibbs_update <- function(tau, eta1_bar, eta2, beta, x, y, theta){
+  # mets à jours les paramètres tau, eta1_bar, eta2 et beta après une étape de Gibbs
+  
+    n <- length(y)
+    p <- length(beta)
+    xi1 <- Xi1(theta)
+    xi2 <- Xi2(theta)
+  
+    v_bar <- v_bar_update(tau, beta, n, x, y, xi2, xi1)
+    y_bar <- y_bar_update(v_bar, beta, n, p, xi1, x)
+    t <- t_update(beta, eta1_bar, eta2, p)
+    new_beta <- beta_update(tau, v_bar, t, y_bar, eta2, xi2, x, y, p)
+    new_eta1_bar <- eta1_bar_update(t, eta1_bar, p)
+    new_eta2 <- eta2_update(new_beta, t, p)
+    new_tau <- tau_update(v_bar, new_beta, x, y, xi1, xi2, n)
     
     return( c(new_tau, new_eta1_bar, new_eta2, new_beta) )
 }
@@ -120,7 +161,13 @@ Gibbs_update <- function(tau, eta1_bar, eta2, beta){
 #           burnin = 10 
 #           autocorr = 10
 
-Generation_Gibbs <- function(r_gibbs, burnin=0, autocorr=0){
+Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
+  
+  # génère un tableau avec r_gibbs échantillonages de Gibbs des variables :
+  # tau : première colonne
+  # eta1_bar : deuxième colonne
+  # eta2 : troisième colonne
+  # beta : colonnes restantes
 
   # initialisation des paramètres 
   tau <- rgamma(1, shape=a, rate=b)
@@ -137,7 +184,7 @@ Generation_Gibbs <- function(r_gibbs, burnin=0, autocorr=0){
 
   # burn in :
   for(r in 1:burnin){
-    res <- Gibbs_update(tau, eta1_bar, eta2, beta)
+    res <- Gibbs_update(tau, eta1_bar, eta2, beta, x, y, theta)
     
     tau <- res[1]
     eta1_bar <- res[2]
@@ -148,7 +195,7 @@ Generation_Gibbs <- function(r_gibbs, burnin=0, autocorr=0){
   # gibbs sampling :
   for(r in 1:r_gibbs){
       for(j in 1:(1+autocorr)){
-        res <- Gibbs_update(tau, eta1_bar, eta2, beta)
+        res <- Gibbs_update(tau, eta1_bar, eta2, beta, x, y, theta)
     
         tau <- res[1]
         eta1_bar <- res[2]
@@ -167,9 +214,14 @@ Generation_Gibbs <- function(r_gibbs, burnin=0, autocorr=0){
 }
 
 ################## paramétrisation burn-in & corrélations ######################
-r_gibbs = 1000
 
-ls <- Generation_Gibbs(r_gibbs)
+data <- data_generation(100, theta=0.5)
+y <- data[,1]
+x <- data[,-1]
+
+r_gibbs = 200
+
+ls <- Generation_Gibbs(r_gibbs, x, y, theta)
 tau_gibbs <- ls[,1]
 eta1_bar_gibbs <- ls[,2]
 eta2_gibbs <- ls[,3]
@@ -192,11 +244,11 @@ acf(eta2_gibbs)
 
 ################################ Analyse #################################
 
-r_gibbs = 1000
+r_gibbs = 100
 burnin = 10
 autocorr = 10
 
-ls <- Generation_Gibbs(r_gibbs, burnin, autocorr)
+ls <- Generation_Gibbs(r_gibbs, x, y, theta, burnin, autocorr)
 tau_gibbs <- ls[,1]
 eta1_bar_gibbs <- ls[,2]
 eta2_gibbs <- ls[,3]
@@ -216,4 +268,3 @@ sprintf('variable eta2 : moyenne %f, écart-type %f', mean(eta2_gibbs), sd(eta2_
 sprintf('variable beta1 : moyenne %f, écart-type %f', mean(beta_gibbs[,1]), sd(beta_gibbs[,1]))
 sprintf('variable beta2 : moyenne %f, écart-type %f', mean(beta_gibbs[,2]), sd(beta_gibbs[,2]))
 sprintf('variable beta3 : moyenne %f, écart-type %f', mean(beta_gibbs[,3]), sd(beta_gibbs[,3]))
-
