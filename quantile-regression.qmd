@@ -12,8 +12,8 @@ format:
         \usepackage{amsmath}
         \usepackage{bbm}
         \usepackage{xcolor}
-    classoption:
-      - twocolumn
+#    classoption:
+#      - twocolumn
 ---
 
 This reports reproduces the results @2010-quantile-regression, focussing on their extension of the quantile regression with Elasticnet regularisation in a Bayesian framework. Regression is the idea that, for an outcome $y\in\mathbb{R}$ and associated inputs $\mathbf{x}\in\mathbb{R}^d$ ($d \in \mathbb{N}_\star$), we may suppose that in some sense $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$, for some real vector $\boldsymbol{\beta}\in\mathbb{R}^d$. Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$, classical regression consists in estimating the unknown parameter $\boldsymbol{\beta}$ by setting: $$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$${#eq-classical-regression} ... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least-squares regression. In a **quantile regression**, one rather opts for the asymmetric "check loss" : $$\ell_\theta(a,b)=\left\{\begin{array}{cl}\theta (a-b), & \text { if } a \geqslant b \\ -(1-\theta) (a-b), & \text { if }  a<b\end{array}\right.$$ ... with $\theta\in(0,1)$, which generalises absolute loss $\ell_0(a,b)=|a-b|$ leading to so-called median regression^[Note that $\ell_0$ is proportional to $\ell_\theta$ with $\theta=0.5$ and that the proportionality coefficient does not matter in @eq-classical-regression, so the two losses are completely interchangeable.].
@@ -157,6 +157,29 @@ Those last two equations, together with the gamma priors defined on variables $\
 ## Appendices
 
 ### Code
+
+Some text with an important number of lines: `r nrow(iris)`.
+
+https://quarto.org/docs/computations/r.html
+https://quarto.org/docs/computations/execution-options.html
+
+```{r}
+#| echo: false
+#| warning: false
+library(hqreg)
+X = matrix(rnorm(1000*100), 1000, 100)
+beta = rnorm(10)
+eps = 4*rnorm(1000)
+y = drop(X[,1:10] %*% beta + eps)
+cv = cv.hqreg(X, y, seed = 123)
+plot(cv)
+```
+
+
+```{r}
+library(knitr)
+kable(head(cars))
+```
 
 ### Project checks
 
