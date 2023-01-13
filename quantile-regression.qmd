@@ -337,13 +337,47 @@ The library furnishes cross-validation over $\lambda$ with mean square error. We
 
 > A mettre sous forme de tableau ??
 
-RQ : methode classique bcp plus longue ! 
+RQ générales : 
+
+methode classique bcp plus longue ! 
 méthode bayésienne rapide mais l'erreur obtenue à la fin est bcp plus grande ! (vérifier la fonction de perte?)
 cependant l'estimateur obtenu au final est aussi proche de beta en norm 2  dans les 2 cas 
 
-peut être est ce du au calcul de eta1 et eta2
+peut être est ce du au calcul de lambda1 et lambda2 -> couple (l1, l2) associé à 1 estimateur beta, est ce que le couple moyen (l1_bar, l2_bar) associé au beta moyen ?
 
 on peut comparer l'erreur dans le cas du bruit u gaussien et u skewed laplace pour plusieurs theta ? 
+
+résultats :
+ paramètres 
+n_samples_test = 100
+theta = 0.3
+beta0 = c(rep(3,15), rep(0, 15))
+tau0 = 2
+
+g_err = FALSE
+n_samples_train = 50
+ méthode classique : 1min 55s d'execution, loss = 1.34, $\| \hat{\beta} - \beta0 \|^2 = 2.5$
+ méthode bayésienne : (moyenne sur 100 valeurs) 6s exec, loss = 179  (Rq la loss ne dépend pas vraiment du nb d'échantillons générés avec Gibbs)  $\| \hat{\beta} - \beta0 \|^2 = 16$
+
+g_err = FALSE
+n_samples_train = 500
+  méthode classique : 14s d'execution, loss = 0.77, $\| \hat{\beta} - \beta0 \|^2 = 0.13$
+  méthode bayésienne : (moyenne sur 100 valeurs) 30s, loss = 14 , $\| \hat{\beta} - \beta0 \|^2 = 0.23$
+  
+erreur gaussienne
+n_samples_train = 50
+ méthode classique : 2min 24s d'execution, loss = 2.11, $\| \hat{\beta} - \beta0 \|^2 = 11$
+ méthode bayésienne : (moyenne sur 100 valeurs) 7s exec, loss = 157  $\| \hat{\beta} - \beta0 \|^2 = 19$
+ 
+erreur gaussienne
+n_samples_train = 500
+ méthode classique : 14s d'execution, loss = 1.8, $\| \hat{\beta} - \beta0 \|^2 = 0.6$
+ méthode bayésienne : (moyenne sur 100 valeurs) 27s exec, loss = 31  $\| \hat{\beta} - \beta0 \|^2 = 0.9$
+
+
+
+
+
 
 ## Appendices
 

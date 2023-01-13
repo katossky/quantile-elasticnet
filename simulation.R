@@ -360,9 +360,9 @@ Elastic_net_loss <- function(x, y, theta, beta, l1=0, l2=0, lambda=0, alpha=0, t
 n_samples_train = 50
 n_samples_test = 100
 theta = 0.3
-beta0 = c(rep(3,5), rep(0, 3), rep(3, 5))
+beta0 = c(rep(3,15), rep(0, 15))
 tau0 = 2
-g_err = FALSE
+g_err = TRUE
 
 
 training_data <- data_generation(n_samples_train, theta, beta0,  tau0, g_err)
@@ -380,26 +380,14 @@ t2 <- Sys.time()
 print(t2 - t1)
 c_loss <- Elastic_net_loss(x_test, y_test, theta, qreg$beta, lambda=qreg$lambda, alpha=qreg$alpha, type='classical')
 print(c_loss)
-   # note for g_err = FALSE / theta = 0.3
-   # elapsed time : 39s
-   # loss : 0.7
-
+ 
 # bayesian regression
-n_values = c(100, 200, 300, 400, 500)
-b_loss = rep(0,5)
-for(l in 1:5){
-    print('nb d iterations de gibbs :')
-    print(n_values[l])
-    t1 <- Sys.time()
-    bayes_qreg <- bayesian_qreg(x_train, y_train, theta, n_vals=n_values[l])
-    t2 <- Sys.time()
-    print(t2 - t1)
-    b_loss[l] <- Elastic_net_loss(x_test, y_test, theta, bayes_qreg$beta_mean, l1=bayes_qreg$lambda1, l2=bayes_qreg$lambda2)
-    print(b_loss[l])
-}
-  # note for g_err = FALSE / theta = 0.3
-  # elapsed time : ~ 1.5 s pour 100 gibbs steps
-  # loss : toujours autour de 9
+t1 <- Sys.time()
+bayes_qreg <- bayesian_qreg(x_train, y_train, theta, n_vals=100)
+t2 <- Sys.time()
+print(t2 - t1)
+b_loss[l] <- Elastic_net_loss(x_test, y_test, theta, bayes_qreg$beta_mean, l1=bayes_qreg$lambda1, l2=bayes_qreg$lambda2)
+print(b_loss[l])
 
 sum((bayes_qreg$beta_mean - beta0)**2) 
 sum((qreg$beta - beta0)**2)
