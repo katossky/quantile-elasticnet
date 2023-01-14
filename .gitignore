@@ -38,3 +38,6 @@ vignettes/*.pdf
 .Renviron
 
 /.quarto/
+
+# MacOS files
+.DS_Store
