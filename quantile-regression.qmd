@@ -12,44 +12,65 @@ format:
         \usepackage{amsmath}
         \usepackage{bbm}
         \usepackage{xcolor}
+        \usepackage{cancel}
 #    classoption:
 #      - twocolumn
 ---
 
 This reports reproduces the results from @2010-quantile-regression, focussing on their extension of the quantile regression with Elasticnet regularisation in a Bayesian framework.
+
+## Introduction
+
 Regression is the idea that, for an outcome $y\in\mathbb{R}$ and associated inputs $\mathbf{x}\in\mathbb{R}^d$ ($d \in \mathbb{N}_\star$), we may suppose that in some sense $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$, for some real vector $\boldsymbol{\beta}\in\mathbb{R}^d$.
-Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$, classical regression consists in estimating the unknown parameter $\boldsymbol{\beta}$ by setting: $$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$${#eq-classical-regression} ... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least-squares regression.
+Given a set of observations $(y_i,\mathbf{x}_i)_{i=1..n}$, classical regression consists in estimating the unknown parameter $\boldsymbol{\beta}$ by setting:
+$$\hat{\boldsymbol{\beta}}_n=\arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})$${#eq-classical-regression}
+... where $\ell$ is some loss function, typically $\ell_2(a,b)=(a-b)^2$ for the ordinary least-squares regression.
 In a **quantile regression**, one rather opts for the asymmetric "check loss" : $$\ell_\theta(a,b)=\left\{\begin{array}{cl}\theta (a-b), & \text { if } a \geqslant b \\ -(1-\theta) (a-b), & \text { if }  a<b\end{array}\right.$$ ... with $\theta\in(0,1)$, which generalises absolute loss $\ell_0(a,b)=|a-b|$ leading to so-called median regression[^1].
 
 [^1]: Note that $\ell_0$ is proportional to $\ell_\theta$ with $\theta=0.5$ and that the proportionality coefficient does not matter in @eq-classical-regression, so the two losses are completely interchangeable.
 
-Next, Elasticnet regularisation consists into constraining the values of $\boldsymbol{\beta}$ not to move too far away from the origin, in the sense that both $\|\boldsymbol{\beta}\|_1$ (the taxicab distance from the origin) and $\|\boldsymbol{\beta}\|_2^2$ (the square of the distance to the origin) are small. This leads to the final problem: $$\begin{aligned}
-\hat{\boldsymbol{\beta}}_n(\lambda_1,\lambda_2,\theta)= \\ \arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})+\lambda_1\|\boldsymbol{\beta}\|_1+\lambda_2\|\boldsymbol{\beta}\|^2_2
-\end{aligned}$$ {#eq-classical-elasticnet} ... where $\lambda_1$ and $\lambda_2$ control how stringent each regularisation is (less strigent as $\lambda \to 0$).
+Finally, Elasticnet regularisation consists into constraining the values of $\boldsymbol{\beta}$ not to move too far away from the origin, in the sense that both $\|\boldsymbol{\beta}\|_1$ (the taxicab distance from the origin) and $\|\boldsymbol{\beta}\|_2^2$ (the square of the Euclidean distance from the origin) are small.
+This leads to the final problem:
+$$
+\hat{\boldsymbol{\beta}}_n(\lambda_1,\lambda_2,\theta) = \arg\min_{\boldsymbol{\beta}\in\mathbb{R}^d}\sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta})+\lambda_1\|\boldsymbol{\beta}\|_1+\lambda_2\|\boldsymbol{\beta}\|^2_2
+$$ {#eq-classical-elasticnet}
+... where $\lambda_1$ and $\lambda_2$ control how stringent each regularisation is (less strigent as $\lambda \to 0$).
 
-The article studies **how to put Elasticnet quantile regression into a Bayesian paradigm**, thus allowing for priors over the distributions of both $\boldsymbol{\beta}$ and the approximation error in $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$. One of the advantages of the Bayesian paradigm is to obtain exact distributions for the parameter $\boldsymbol{\beta}$.
+The article studies **how to put Elasticnet quantile regression into a Bayesian paradigm**, thus allowing for priors over the distributions of both $\boldsymbol{\beta}$ and the approximation error in $y\simeq \mathbf{x}^\top\boldsymbol{\beta}$.
+The main advantages of such a Bayesian paradigm is to obtain exact distribution for the target estimator $\hat{\boldsymbol{\beta}}_n|\theta$, even for small sample sizes.
+The authors claim that their results incidentally "provide more accurate estimates and better prediction accuracy than their non-Bayesian peers" but the evidence they submit is more nuanced.
 
-## Putting regularised quantile regression (Elasticnet) into the Bayesian formalism (1 page)
+## Putting regularised quantile regression (Elasticnet) into the Bayesian formalism
 
-> Definition of the problem under study and explanation of why it is interesting
+How can we reinterpret @eq-classical-elasticnet in a Bayesian framework? First notice that:
+$$
+\arg \min \sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta}) 
+= \arg \max \prod_{i=1}^n \exp (-\ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta}))
+$$
+The (stricly decreasing) exponential-negative transform allows us to re-interpret error minimisation as the maximisation of some joint probability over independent observations, each under some exponential probabilistic distribution.
+The question becomes how to choose the priors so that the posterior distribution has this required form.
 
-How can we reinterpret @eq-classical-elasticnet in a Bayesian framework? First notice that: \begin{align*}
-& \arg \min \sum_{i=1}^n \ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta}) \\
-& \iff \arg \max \prod_{i=1}^n \exp (-\ell_\theta(y_i, \mathbf{x}_i^\top\boldsymbol{\beta}))
-\end{align*} This means that the exponential-negative transform allows us to re-interpret error minimisation as the maximisation of some joint probability, under well-chosen priors. The question is how to choose the priors !
+Let's define the prediction error $u\overset{\Delta}=y-\mathbf{x}^\top\boldsymbol{\beta}$ and let suppose that $u$ follows a (centred) skewed Laplace distribution with parameters $(0,\tau,\theta)$.
+That is, with $\tau>0$ and $\theta>0$ and $\forall u \in \mathbb{R}$: $$\pi(u|\tau) = \theta(1 - \theta) \tau \exp(-\tau \ell_\theta(u)).$$
+Then we get the following joint posterior on the sample $(y_i,\mathbf{x}_i)_{i=1..n}$:
+$$
+f(\boldsymbol{\beta}\mid y_1...y_n,\mathbf{x}_1...\mathbf{x}_n ; \tau ; \theta)
+= \theta^n (1 - \theta)^n \tau^n \exp\bigg\{-\tau \sum_{i=1}^n \ell_\theta(y_i - \mathbf{x}_i^\top \boldsymbol{\beta} ) \bigg\}
+$$
+Maximizing this expression is equivalent to @eq-classical-elasticnet without the penalties since we can discard all the (strictly positive) multiplicative constants in front and inside of the exponential.
 
-Let's define the prediction error $u\overset{\Delta}=y-\mathbf{x}^\top\boldsymbol{\beta}$ and let suppose that $u$ follows a (centred) skewed Laplace distribution with parameters $(0,\tau,\theta)$. That is, with $\tau>0$ and $\theta>0$ and $\forall u \in \mathbb{R}$: $$\pi(u|\tau) = \theta(1 - \theta) \tau \exp(-\tau \ell_\theta(u)).$$ Then we get the following joint posterior on the sample $(y_i,\mathbf{x}_i)_{i=1..n}$: \begin{align*}
-& f(\boldsymbol{\beta}\mid y_1...y_n,\mathbf{x}_1...\mathbf{x}_n ; \tau ; \theta) \\
-& = \theta^n (1 - \theta)^n \tau^n \exp\bigg\{-\tau \sum_{i=1}^n \ell_\theta(y_i - \mathbf{x}_i^\top \boldsymbol{\beta} ) \bigg\}
-\end{align*} Maximizing this expression is equivalent to @eq-classical-elasticnet without the penalties since we can discard all the (strictly positive) multiplicative constants in front and inside of the exponential.
-
-What about the two penalty terms $\lambda_1\|\boldsymbol{\beta}\|_1$ and $\lambda_2\|\boldsymbol{\beta}\|^2_2$? Setting a prior on $\boldsymbol{\beta}$ of the form: \begin{align*}
-& \pi(\boldsymbol{\beta} | \eta_1,\eta_2) \\
-& \propto \exp \Big\{-\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\}
-\end{align*} ... leads to the posterior distribution: \begin{align*}
-& \pi(\boldsymbol{\beta} |y_1...y_n, \mathbf{x}_1 ... \mathbf{x}_n ; \eta_1,\eta_2,\tau ; \theta) \\
-& \propto { \scriptstyle \exp \Big\{ - \tau \sum_{i=1}^n \ell_\theta(y_i - x_i^\top\boldsymbol{\beta})
--\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\} }\end{align*} ... which is almost what we where looking for! If we set $\lambda_\bullet\overset{\Delta}=\frac{\eta_\bullet}{\tau}$, we get $\eta_\bullet=\lambda_\bullet\tau$ and we can factorise $\tau$ inside the exponential. As $\tau>0$, maximising this expression is exactly equivalent to @eq-classical-elasticnet.
+What about the two penalty terms $\lambda_1\|\boldsymbol{\beta}\|_1$ and $\lambda_2\|\boldsymbol{\beta}\|^2_2$? Setting a prior on $\boldsymbol{\beta}$ of the form:
+$$
+\pi(\boldsymbol{\beta} | \eta_1,\eta_2)
+\propto \exp \Big\{-\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\}
+$${#eq-beta-prior}
+... leads to the posterior distribution:
+$$
+\pi(\boldsymbol{\beta} |y_1...y_n, \mathbf{x}_1 ... \mathbf{x}_n ; \eta_1,\eta_2,\tau ; \theta)
+\propto { \exp \Big\{ - \tau \sum_{i=1}^n \ell_\theta(y_i - x_i^\top\boldsymbol{\beta})
+-\eta_1\|\boldsymbol{\beta}\|_1-\eta_2\|\boldsymbol{\beta}\|^2_2 \Big\} }
+$$
+.. which is almost what we where looking for! If we set $\lambda_\bullet\overset{\Delta}=\frac{\eta_\bullet}{\tau}$, we get $\eta_\bullet=\lambda_\bullet\tau$ and we can factorise $\tau$ inside the exponential. As $\tau>0$, maximising this expression is exactly equivalent to @eq-classical-elasticnet.
 
 These calculations give us, under the assumption of the skewed Laplace distribution for the residuals, an explicit expression for the distribution of the estimator $\hat{\boldsymbol{\beta}}_n\overset{\Delta}=\boldsymbol{\beta}\mid y_1...y_n, \mathbf{x}_1 ... \mathbf{x}_n$ in the quantile regression with elastic-net regularisation *conditionnally on* the quantile $\theta$ and the regularisation parameters $\lambda_1$ and $\lambda_2$ (or $\eta_1$, $\eta_2$ and $\tau$).
 
@@ -60,175 +81,230 @@ This has two consequences:
 1.  we need to specify a *prior* distribution for $(\lambda_1,\lambda_2)$ or $(\tau, \eta_1, \eta_2)$
 2.  for many such distributions, the (unconditional) *posterior* distribution of $\boldsymbol{\hat{\beta}}_n\mid \theta$ will be computationally intractable
 
-We thus need to resort to computational methods to sort out the posterior unconditional distribution, and the Gibbs algorithm seems perfectly suited for this as we readily have a closed form for the conditional $\boldsymbol{\beta} |y_1...y_n, \mathbf{x}_1 ... \mathbf{x}_n ; \eta_1,\eta_2 ; \theta$.
+We thus need to resort to computational methods to sort out the posterior unconditional distribution, and the Gibbs algorithm seems perfectly suited for this as we readily have a closed form for the conditional $\boldsymbol{\beta} |y_1...y_n, \mathbf{x}_1 ... \mathbf{x}_n ; \eta_1,\eta_2,\tau ; \theta$.
 
-## Distribution of interest parameter $\boldsymbol{\beta}$ may be elicited through Gibbs sampling (1,5 page)
+## Distribution of interest parameter $\boldsymbol{\beta}$ may be elicited through Gibbs sampling
 
-> Choice of the appropriate Bayesian technique (you should explain the methodology used and the motivation why you have chosen it)
+Specifying the full Bayesian model is far from done, mainly for tractibility reasons. Alas, the authors rarely discuss what the tractability issued precisely are, so all we can do is to follow their lead. First, the authors show that $u\sim \text{Laplace}(0,\tau,\theta)$ can be re-written as : $\tau u=\xi_1 v+\xi_2 \, \sqrt{v}\; z$ where $v\sim\mathcal{E}(1)$ and $z\sim\mathcal{N}(0,1)$, and where $\xi_1=\frac{1-2 \theta}{\theta(1-\theta)}$ and $\xi_2=\sqrt{\frac{2}{\theta(1-\theta)}}$. Now writing $\tilde v\overset{\Delta}=v/\tau$, we get both $\tilde v\mid \tau\sim\mathcal{E}(1/\tau)$ and: $$u\overset{\Delta}=\xi_1\tilde v+(\xi_2/\sqrt{\tau})\;\sqrt{\tilde{v}} \;z \mid \tau \sim \mathrm{Laplace}(0,\tau,\theta)$${#eq-u-prior}
 
-Specifying the full Bayesian model is far from done. First, the authors show that $u\sim \text{Laplace}(0,\tau,\theta)$ can be re-written as : $$\tau u=\xi_1 v+\xi_2 \, \sqrt{v}\; z$$ where $v\sim\mathcal{E}(1)$ and $z\sim\mathcal{N}(0,1)$, and where $\xi_1=\frac{1-2 \theta}{\theta(1-\theta)}$ and $\xi_2=\sqrt{\frac{2}{\theta(1-\theta)}}$. Now writing $\tilde v\overset{\Delta}=v/\tau$, we get both $\tilde v\mid \tau\sim\mathcal{E}(1/\tau)$ and: $$u=\xi_1\tilde v+(\xi_2/\sqrt{\tau})\;\sqrt{\tilde{v}} \;z$$
-
-The full hierarchical model is the following[^2]: \begin{align*}
-y & = && \mathbf{x}_i^\top \boldsymbol{\beta}+\xi_1 \tilde{v}_i+\xi_2 \tau^{-1 / 2} \sqrt{\tilde{v}_i} z_i \\
+Then they show that the following full hierarchical model both guarantees tractablity and achieved the desired priors on $u\mid \tau$ (@eq-u-prior) and $\boldsymbol{\beta}\mid\eta_1,\eta_2$ (@eq-beta-prior) [^2]:
+$$
+\begin{aligned}
+\tilde{\eta}_1 & \sim && \mathrm{Gamma}(c_1,d_1) &
+\tau & \sim && \mathrm{Gamma}(a,b) \\
+\eta_2 & \sim && \mathrm{Gamma}(c_2,d_2) &
 \tilde v \mid \tau & \sim && \mathcal{E}(1/\tau) \\
-\tilde z & \sim && \mathcal{N}(0,1) \\
-\tau & \sim && \mathrm{Gamma}(a,b) \propto \tau^{a-1}\mathrm{e}^{-b\tau} \\
-\tilde{\eta}_1 & \sim && \mathrm{Gamma}(c_1,d_1) \\
-\eta_2 & \sim && \mathrm{Gamma}(c_2,d_2) \\
-t_k | \tilde{\eta}_1 & \overset{\perp\!\!\!\perp}\sim && \Gamma^{-1}(1/2, \tilde{\eta}_1) t_k^{-1/2} \tilde{\eta}_1^{-1/2} \exp(-\tilde{\eta}_1t_k) \\ &&& \times \mathbbm{1}(t_k>1) \\
-\beta_k | t_k, \eta_2 & \sim && \frac{1}{\sqrt{2\pi(t_k - 1)/(2\eta_2t_k)}}  \\
-&&& \times \exp\left\{ -\frac{1}{2} \left( \frac{t_k-1}{2\eta_2t_k}\right)^{-1} \beta_k^2 \right\}
-\end{align*}
+t_k | \tilde{\eta}_1 & \overset{\perp\!\!\!\perp}\sim && 
+\begin{array}{l}
+\Gamma^{-1}(1/2, \tilde{\eta}_1) \; \tilde{\eta}_1^{-1/2} \\
+\times t_k^{-1/2} \exp(-\tilde{\eta}_1t_k) \mathbbm{1}(t_k>1)
+\end{array} &
+z & \sim && \mathcal{N}(0,1) \\
+\beta_k | t_k, \eta_2 & \overset{\perp\!\!\!\perp}\sim &&
+\begin{array}{l}
+\frac{1}{\sqrt{2\pi(t_k - 1)/(2\eta_2t_k)}} \\
+\times \exp\left\{ -\frac{1}{2} \left( \frac{t_k-1}{2\eta_2t_k}\right)^{-1} \beta_k^2 \right\}
+\end{array}
+\end{aligned}
+$$
 
 [^2]: For reasons just stated, $\theta$ is now omitted in the conditioning and considered a constant.
 
-$\tilde{\eta}_1=\eta_1^2 /\left(4 \eta_2\right)$ ; this comes from the computation of the constant in \$ $\pi(\boldsymbol{\beta} | \eta_1,\eta_2)$.
+... where $a,b,c_1,c_2,d_2,d_2$ are strictly positive constants arbitrarily chosen to express the researcher's prior[^4] and $\Gamma(\cdot,\cdot)$ is the upper incomplete gamma function. The random latent vector $\mathbf{t}\overset{\Delta}=(t_k)_{k=1..d}$ is introduced for analytical reasons whereas $\tilde{\eta}_1 \overset{\Delta}=\eta_1^2 /\left(4 \eta_2\right)$ arises from the computation of the constant in @eq-beta-prior.
 
-... where $\mathbf{z}$ and $\mathbf{t}$ are latent variables introduced for analytical reasons, $a,b,c_1,c_2,d_2,d_2$ are strictly positive constants arbitrarily chosen and $\Gamma()$ is the upper incomplete gamma function.
+[^4]: If $a,b,c_1,c_2,d_2,d_2$ are all zero, then the prior is non-informative.
 
-The conditional posteriors are given by: $$\begin{aligned}
-t_k-1 \mid \mathbf{y}, \mathbf{X}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}_{-k}, \tau, \tilde{\eta}_1, \eta_2 \\
-\overset{\propto}\sim \frac{1}{\sqrt{t_k-1}} \mathbbm{1}\left(t_k>1\right) \\ \times \exp \left\{-\frac{1}{2}\left(\frac{t_k-1}{2 \eta_2 t_k}\right)^{-1} \beta_k^2 -\tilde{\eta}_1 t_k\right\} \\
-\beta_k \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}_{-k}, \mathbf{t}, \tau, \tilde{\eta}_1, \eta_2 \\
-\sim \mathcal{N}(\tilde{\mu}_k, \tilde{\sigma}^2_k) \\
-\tau\mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tilde{\eta}_1, \eta_2 \\
-\sim \mathrm{Gamma}(a\textcolor{red}{+\frac{3n}{2}-1}, \tilde b ) \\
-\eta_2\mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \tilde{\eta}_1 \\
-\sim \mathrm{Gamma}(c_2\textcolor{red}{+\frac{p}{2}-1},d_2\textcolor{red}{+\sum_{k=1}^p \frac{t_k}{t_k-1} \beta_k^2} ) \\
-\tilde{v}_i \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}_{-i}, \boldsymbol{\beta}, \mathbf{s}, \tau, \eta^2 \\ \overset{\propto}\sim \frac{1}{\sqrt{\tilde{v}_i}} \exp \left\{-\frac{1}{2}\left[\left(\frac{\tau \xi_1^2}{\xi_2^2}+2 \tau\right) \tilde{v}_i+\frac{\tau u_i^2}{\tilde{v}_i\xi_2^2}\right]\right\} \\
-\end{aligned}$$
+But now for estimating $\beta$ on a sample, we will use a Gibbs sampler for which we need the conditional posteriors. Noting $\mathbf{y}=(y_1..y_n)$, $\mathbf{X}=(\mathbf{x}_1..\mathbf{x}_n)$, $\mathbf{t}_{-k}=(t_1..t_{k-1},t_{k+1},..t_d)$ and following similar conventions for $\boldsymbol{\beta}_{-k}$ and $\tilde{\mathbf{v}}_{-i}$, they are given by:
+$$
+\begin{aligned}
+\tilde{\eta}_1 & \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \eta_2& \propto & \Gamma^{-p}\left(1 / 2, \tilde{\eta}_1\right) \tilde{\eta}_1^{p / 2+\textcolor{red}{c_1}-1} \exp \left\{-\tilde{\eta}_1\left[\textcolor{red}{d_1}+\sum_{k=1}^p t_k\right]\right\} \\
+\eta_2 & \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \tilde{\eta}_1 & \sim & \mathrm{Gamma}(\textcolor{red}{c_2}+\frac{p}{2},\textcolor{red}{d_2}+\sum_{k=1}^p \frac{t_k}{t_k-1} \beta_k^2 ) \\
+t_k-1 & \mid \mathbf{y}, \mathbf{X}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}_{-k}, \tau, \tilde{\eta}_1, \eta_2 & \sim & \mathrm{Gen. inv. Gaussian}\left(\frac{1}{2}, \; 2\tilde\eta_1, \; 2\eta_2\beta_k^2\right) \\
+\beta_k & \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}_{-k}, \mathbf{t}, \tau, \tilde{\eta}_1, \eta_2 & \sim & \mathcal{N}\left(
+ \frac{\tau \tilde{\sigma}_k^2}{\textcolor{red}{\xi_2}^2} \sum_{i=1}^n \frac{\tilde{y}_{i,-k} x_{i k}}{\tilde{v}_i}, \; \tilde{\sigma}_k^2
+\right) \\
+\tau & \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tilde{\eta}_1, \eta_2 & \sim & \mathrm{Gamma}\left(\textcolor{red}{a} +\frac{3n}{2},\textcolor{red}{b}+\sum_{i=1}^n\left(\frac{\tilde y_i^2}{2 \textcolor{red}{\xi_2}^2 \tilde{v}_i}+\tilde{v}_i\right)\right) \\
+\tilde{v}_i & \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}_{-i}, \boldsymbol{\beta}, \mathbf{t}, \tau, \tilde{\eta}_1, \eta_2 & \sim & \mathrm{Gen. inv. Gaussian}\left(\frac{1}{2},\frac{\tau \textcolor{red}{\xi_1}^2}{\textcolor{red}{\xi_2}^2}+2 \tau,\frac{\tau\left(y_i-\mathbf{x}_i^\top \boldsymbol{\beta}\right)^2}{\textcolor{red}{\xi_2}^2}\right)
+\end{aligned}
+$$
 
-... where $$\begin{aligned}
-\tilde b & = b\textcolor{red}{+\sum_{i=1}^n\left(\frac{\left(y_i-\mathbf{x}_i^\top \boldsymbol{\beta}-\xi_1 \tilde{v}_i\right)^2}{2 \xi_2^2 \tilde{v}_i}+\tilde{v}_i\right)} \\
-\tilde \mu_k & = \\
-\tilde \sigma_k^2 & = \\
-u_i = 
-\end{aligned}$$
+... where red denotes constants from the priors, and:
+$$
+\begin{aligned}
+\tilde y & = y-\;\;\;\;\mathbf{x}^\top \boldsymbol{\beta}\;\;\:-\textcolor{red}{\xi_1} \tilde{v} \\
+\tilde y_{-k} & = y-{\mathbf{x}_{-k}}^\top \boldsymbol{\beta}_{-k}-\textcolor{red}{\xi_1} \tilde{v} \\
+\tilde \sigma_k^2 & = \frac{1}{\frac{\tau}{\textcolor{red}{\xi_2}^{2}} \sum_{i=1}^n \frac{x_{i k}^2}{ \tilde{v}_i}+2 \eta_2 \frac{t_k}{t_k-1}}\\
+\end{aligned}
+$$
 
-$$\begin{aligned}
-f\left(\tilde{\eta}_1 \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \eta_2\right) & \propto \tilde{\eta}_1^{c_1-1} \exp \left(-d_1 \tilde{\eta}_1\right) \prod_{k=1} \Gamma^{-1}\left(1 / 2, \tilde{\eta}_1\right) \tilde{\eta}_1^{1 / 2} \exp \left\{-\tilde{\eta}_1 t_k\right\} \\
-& \propto \Gamma^{-p}\left(1 / 2, \tilde{\eta}_1\right) \tilde{\eta}_1^{p / 2+c_1-1} \exp \left\{-\tilde{\eta}_1\left[d_1+\sum_{k=1}^p t_k\right]\right\}
-\end{aligned}$$
+The authors judge difficult to directly sample from the distribution $\tilde{\eta}_1 \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \eta_2$ since (a) it does not correspond to any known distribution, (b) we know the distribution only up to a multiplicative constant and (c) there is a $\eta_1$ inside the $\Gamma(\cdot,\cdot)$ function which hinders tractability. They thus resort to one step of Metropolis-Hastings, which has the nice property of not needing the missing multiplicative constant[^3].
 
-$t_k=1+2 \eta_2 s_k$
+With this last step, we can now run the Gibbs algorithm in full, thus estimate the unconditionnal distribution for $\boldsymbol{\beta}$ and turn to simulations.
 
-```{=tex}
-\begin{align*}
-y_i & = && \mathbf{x}_i^\top \boldsymbol{\beta}+\xi_1 \tilde{v}_i+\xi_2 \tau^{-1 / 2} \sqrt{\tilde{v}_i} z_i \\
-\tilde{\mathbf{v}} \mid \tau & \sim && \prod_{i=1}^n \tau \exp \left(-\tau \tilde{v}_i\right) \\
-\mathbf{z} & \sim && \prod_{i=1}^n \frac{1}{\sqrt{2 \pi}} \exp \left(-\frac{1}{2} z_i^2\right) \\
-\tau & \sim && \mathrm{Gamma}(a,b) \propto \tau^{a-1}\mathrm{e}^{-b\tau} \\
-\tilde{\eta}_1 & \sim && \mathrm{Gamma}(c_1,d_1) \\
-t_k | \tilde{\eta}_1 & \overset{\perp\!\!\!\perp}\sim && \Gamma^{-1}(1/2, \tilde{\eta}_1) t_k^{-1/2} \tilde{\eta}_1^{-1/2} \exp(-\tilde{\eta}_1t_k) \\ &&& \times \mathbbm{1}(t_k>1) \\
-\end{align*}
+[^3]: Instead of sampling $\tilde \eta_1$ directly from its conditional law, we first sample a candidate $\eta_c$ from the distribution $\textrm{Gamma}(p+c_1, d_1 + \sum_k (t_k-1)$ **ARTHUR: j'ai rajouté le -1 ici comme dans l'article!!!!** which we accept with probability $\max(1, \alpha)$, where $\alpha$ is the ration of the density function of the Gamma distribution, evaluated in the candidate and in the current value of $\tilde \eta_1$ :
+$g(\eta_c)/g(\tilde \eta_1)$.
+If the candidate is rejected, the value of $\tilde \eta_1$ remains unchanged.
+
+## Simulation
+
+### Tuning of the Gibbs algorithm
+
+With the Gibbs algorithm, as with all MCMC methods, there is a burn-in phase (during which the Markov chain converges to its stationary law) and dependence between succesive iterations of the algorithm. We thus first check for the length of the burn-in period, then for correlation between successive runs.
+
+
+```{r}
+#| echo: false
+library('statmod')
+library('GIGrvg')
+library('mvtnorm')
+library('hqreg')
 ```
-```{=tex}
-\begin{align*}
-f\left(\eta_2 \mid \mathbf{X}, \mathbf{y}, \tilde{\mathbf{v}}, \boldsymbol{\beta}, \mathbf{t}, \tau, \tilde{\eta}_1\right) & \propto \eta_2^{c_2-1} \exp \left(-d_2 \eta_2\right) \prod_{k=1}^p \eta_2^{1 / 2} \exp \left\{-\frac{1}{2}\left(\frac{t_k-1}{2 \eta_2 t_k}\right)^{-1} \beta_k^2\right\} \\
-& \propto \eta_2^{p / 2+c_2-1} \exp \left\{-\eta_2\left(d_2+\sum_{k=1}^p t_k\left(t_k-1\right)^{-1} \beta_k^2\right)\right\}
-\end{align*}
+
+```{r, data-generation-function}
+#| echo: false
+
+Xi1 <- function(theta){ return ( (1 - 2*theta) / (theta* (1-theta)) ) }
+Xi2 <- function(theta){ return (sqrt(2 / (theta * (1-theta)))) }
+
+data_generation <- function(n, theta, beta0=c(3, 3, 0, 3, 3), tau0=2, g_err=TRUE){
+  # renvoie les un tableau dont la première colonne y,
+  # les colonnes suivantes x \# n nombre d échantillons à générer (=nombre de lignes),
+  # theta quantile souhaité
+  
+  xi1 <- Xi1(theta)
+  xi2 <- Xi2(theta)
+  p <- length(beta0)
+  
+  # simulation des variables explicatives x
+  S <- matrix(0, nrow=p, ncol=p)
+  for(k in 1:p){ for(l in 1:p){ S[k,l] <- 0.5**abs(k-l) } }
+  x <- matrix(0, nrow=n, ncol=p)
+  for(i in 1:n){ x[i,] <- mvtnorm::rmvnorm(1, mean=rep(0, p), sigma=S) }
+  
+  # simulation des erreurs
+  
+  if(g_err==FALSE){
+    ## erreurs du modèle quantile elastic net :
+    v <- rexp(n)
+    v_bar <- v / tau0
+    z <- rnorm(n)
+    u <- xi1 * v_bar + xi2 * sqrt(v_bar / tau0) * z
+  }
+  
+  if(g_err){
+    ## erreurs gaussiennes :
+    delta <- qnorm(theta, mean=0, sd=3)
+    u <- rnorm(n, mean=-delta, sd=3)
+  }
+  
+  # calcul de y :
+  y <- x %*% beta0 + u
+
+  list(x=x, y=y)
+}
 ```
-The authors judge "difficult to directly sample from $\tilde \eta_1 \mid \mathbf{y}_n, \mathbf{X}_n, \boldsymbol{\beta}_p, \mathbf{t}_p, \eta_2, \tau; \theta$ and thus resort to one step of Metropolis-Hastings within the general Gibbs algorithm.
 
-Instead of sampling $\tilde \eta_1$ directly from its conditional law, we first sample a candidate $\eta_c$ from the distribution $\Gamma(p+c_1, d_1 + \sum_k t_k)$ which we accept with probability $max(1, \alpha)$, where $\alpha$ is the ration of the density function of the Gamma distribution, evaluated in the candidate and in the current value of $\tilde \eta_1$ : \$ g(\eta\_c)/g(\tilde \\eta_1)\$. If the candidate is rejected, the value of $\tilde \eta_1$ remains unchanged.
-
-<!-- Before defining the Gibbs algorithm we will use to generate samples, we will first specify our bayesian hierarchical model. -->
-
-<!-- We reparameterize our regulation term by setting $$ \left\{ \begin{array}{l}  -->
-
-<!-- \eta_j = \tau \lambda_j \; \; \text{ for }\;  j \in \{1, 2\} \\ -->
-
-<!-- \tilde{\eta_1}  = \eta_1^2/(4\eta_2) \\ -->
-
-<!-- \end{array}\right.$$ -->
-
-<!-- From these prior assumptions, we may infer the resulting conditional posterior on our parameter on interest $\boldsymbol{\beta}$. We here give the expression of the distribution of the component $\beta_k$ of $\boldsymbol{\hat{\beta}}$, conditionally to parameter $\eta_2$ and an intermediate parameter which we name $t_k$. -->
-
-<!-- Those last two equations, together with the gamma priors defined on variables $\tau$, $\tilde{\eta_1}$ and $\eta_2$, give us the basis of a Gibbs sampler for $\beta_k$. \> à vérifier, rajouter ici les lois conditionnelles de $\eta_{1,2}$ ? -->
 
 We plot the evolution of variables in time and acf to determine a burnin time & autocorrelation time to ensure iid observations
 
-```{r echo=FALSE}
-
-library('statmod') library('GIGrvg') library('mvtnorm') library('hqreg')
-
-########################### Génération des données
-
-# fonctions Xi
-
-Xi1 \<- function(theta){ return ( (1 - 2*theta) / (theta* (1-theta)) ) }
-
-Xi2 \<- function(theta){ return (sqrt(2 / (theta \* (1-theta)))) }
-
-data_generation \<- function(n, theta, beta0=c(3, 3, 0, 3, 3), tau0=2, g_err=TRUE){ \# renvoie les un tableau dont la première colonne y, les colonnes suivantes x \# n nombre d échantillons à générer (=nombre de lignes), \# theta quantile souhaité
-
-xi1 \<- Xi1(theta) xi2 \<- Xi2(theta) p \<- length(beta0)
-
-\# simulation des variables explicatives x S \<- matrix(0, nrow=p, ncol=p) for(k in 1:p){ for(l in 1:p){ S\[k,l\] \<- 0.5\*\*abs(k-l) } }
-
-x \<- matrix(0, nrow=n, ncol=p) for(i in 1:n){ x\[i,\] \<- rmvnorm(1, mean=rep(0, p), sigma=S) }
-
-\# simulation des erreurs
-
-if(g_err==FALSE){ \## erreurs du modèle quantile elastic net : v \<- rexp(n) v_bar \<- v / tau0 z \<- rnorm(n) u \<- xi1 \* v_bar + xi2 \* sqrt(v_bar / tau0) \* z }
-
-if(g_err){ \## erreurs gaussiennes : delta \<- qnorm(theta, mean=0, sd=3) u \<- rnorm(n, mean=-delta, sd=3) }
-
-\# calcul de y : y \<- x %\*% beta0 + u
-
-list(x=x, y=y) }
-
+```{r}
 ########################### Fonction Update
 
-a \<- 0.1 b \<- 0.1 c1 \<- 0.1 c2 \<- 0.1 d1 \<- 0.1 d2 \<- 0.1
+a <- 0.1
+b <- 0.1
+c1 <- 0.1
+c2 <- 0.1
+d1 <- 0.1
+d2 <- 0.1
 
-v_bar_update \<- function(tau, beta, n, x, y, xi2, xi1){ chi_v \<- tau \* (y - x%*%beta)**2 / (xi2** 2) psi_v \<-(tau* xi1**2)/xi2**2 + 2\*tau
+v_bar_update <- function(tau, beta, n, x, y, xi2, xi1){
+  chi_v <- tau * (y - x%*%beta)**2 / (xi2** 2)
+  psi_v <-(tau* xi1**2)/xi2**2 + 2*tau
+  v_bar <- rep(0,n)
+  for(i in 1:n){
+    v_bar[i] <- rgig(1, lambda=1/2, chi=chi_v[i], psi=psi_v)
+  }
+  return(v_bar)
+}
 
-v_bar \<- rep(0,n) for(i in 1:n){ v_bar\[i\] \<- rgig(1, lambda=1/2, chi=chi_v\[i\], psi=psi_v) } return(v_bar) }
+y_bar_update <- function(v_bar, beta, n, p, xi1, x, y){
+  y_bar <- matrix(nrow=n, ncol=p)
+  for(k in 1:p){
+    y_bar[,k] <- y - xi1*v_bar - rowSums( t( t(x)*beta)[,-k] )
+  }
+  return(y_bar)
+}
 
-y_bar_update \<- function(v_bar, beta, n, p, xi1, x, y){ y_bar \<- matrix(nrow=n, ncol=p) for(k in 1:p){ y_bar\[,k\] \<- y - xi1*v_bar - rowSums( t( t(x)*beta)\[,-k\] ) }
+t_update <- function(beta, eta1_bar, eta2, p){
+  chi_t <- 2 * eta2 * (beta**2)
+  psi_t <- 2 * eta1_bar
+  t <- rep(0, p)
+  for(k in 1:p){
+    t[k] <- 1 + rgig(1, lambda=1/2, chi=chi_t[k], psi=psi_t)
+  }
+  return(t)
+}
 
-return(y_bar) }
+beta_update <- function(tau, v_bar, t, y_bar, eta2, xi2, x, y, p){
+  sigma_inv2 <- tau * xi2**(-2) * colSums((x**2) * v_bar**(-1)) + 2 * eta2 * t*(t - 1)(-1) # il manque pas un ** ici?
+  sigma_bar <- 1 / sqrt(sigma_inv2)
+  mu_bar <- (sigma_bar**2)* tau * (xi2(-2)) * colSums( y_bar * x * (v_bar**(-1)) ) # pb ici? avec **** => **
+  beta <- rnorm(p, mean=mu_bar, sd=sigma_bar) # euh? on tire un beta aléatoirement ?
+  return(beta)
+}
 
-t_update \<- function(beta, eta1_bar, eta2, p){ chi_t \<- 2 \* eta2 \* (beta\*\*2) psi_t \<- 2 \* eta1_bar
+eta1_bar_update <- function(t, eta1_bar, p){
+  # one step Metropolis Hastings
+  # proposition pour new_eta1_bar :
+  prop_eta1_bar <- rgamma(1, shape=c1 + p, rate=d1 + sum(t-1))
+  # acceptation / rejet :
+  alpha <- dgamma(
+    prop_eta1_bar,
+    shape=c1 + p,
+    rate=d1 + sum(t-1)
+  ) / dgamma(
+    eta1_bar,
+    shape=c1 + p,
+    rate=d1 + sum(t-1)
+  )
+  u <- runif(1)
+  if(u < alpha){
+    return(prop_eta1_bar)
+  } else {
+    return(eta1_bar)
+  }
+}
 
-t \<- rep(0, p) for(k in 1:p){ t\[k\] \<- 1 + rgig(1, lambda=1/2, chi=chi_t\[k\], psi=psi_t) } return(t) }
+eta2_update <- function(beta, t, p){
+  eta2 <- rgamma( 1, shape=c2 + p/2, rate=d2 + sum( (beta**2)*t/(t-1) ) )
+  return(eta2)
+}
 
-beta_update \<- function(tau, v_bar, t, y_bar, eta2, xi2, x, y, p){
+tau_update <- function(v_bar, beta, x, y, xi1, xi2, n){
+  r <- b + sum( v_bar + (y - x%*%beta - xi1*v_bar)**2 / (2*v_bar*xi2**2) )
+  tau <- rgamma( 1, shape=a + 3*n/2, rate= r)
+  return(tau)
+}
 
-sigma_inv2 \<- tau \* xi2**(-2) \* colSums((x**2) \* v_bar**(-1)) + 2 \* eta2 \* t*(t - 1)(-1) sigma_bar \<- 1 / sqrt(sigma_inv2) mu_bar \<- (sigma_bar****2)* tau \* (xi2(-2)) \* colSums( y_bar \* x \* (v_bar\*\*(-1)) )
+Gibbs_update <- function(tau, eta1_bar, eta2, beta, x, y, theta){
+  
+  # met à jours les paramètres tau, eta1_bar, eta2 et beta
+  # après une étape de Gibbs
+  
+  n <- length(y)
+  p <- length(beta)
+  xi1 <- Xi1(theta)
+  xi2 <- Xi2(theta)
 
-beta \<- rnorm(p, mean=mu_bar, sd=sigma_bar)
+  v_bar <- v_bar_update(tau, beta, n, x, y, xi2, xi1)
+  y_bar <- y_bar_update(v_bar, beta, n, p, xi1, x, y)
+  t <- t_update(beta, eta1_bar, eta2, p)
+  new_beta <- beta_update(tau, v_bar, t, y_bar, eta2, xi2, x, y, p)
+  new_eta1_bar <- eta1_bar_update(t, eta1_bar, p)
+  new_eta2 <- eta2_update(new_beta, t, p)
+  new_tau <- tau_update(v_bar, new_beta, x, y, xi1, xi2, n)
 
-return(beta) }
-
-eta1_bar_update \<- function(t, eta1_bar, p){ \# one step Metropolis Hastings \# proposition pour new_eta1_bar : prop_eta1_bar \<- rgamma(1, shape=c1 + p, rate=d1 + sum(t-1))
-
-\# acceptation / rejet : alpha = dgamma(prop_eta1_bar, shape=c1 + p, rate=d1 + sum(t-1)) / dgamma(eta1_bar, shape=c1 + p, rate=d1 + sum(t-1)) u = runif(1)
-
-new_eta1_bar = eta1_bar if(u\<alpha){new_eta1_bar = prop_eta1_bar} return(new_eta1_bar) }
-
-eta2_update \<- function(beta, t, p){ eta2 \<- rgamma( 1, shape=c2 + p/2, rate=d2 + sum( (beta\*\*2)\*t/(t-1) ) ) return(eta2) }
-
-tau_update \<- function(v_bar, beta, x, y, xi1, xi2, n){ r \<- b + sum( v_bar + (y - x%*%beta - xi1*v_bar)**2 / (2*v_bar*xi2**2) ) tau \<- rgamma( 1, shape=a + 3\*n/2, rate= r) return(tau) }
-
-Gibbs_update \<- function(tau, eta1_bar, eta2, beta, x, y, theta){ \# mets à jours les paramètres tau, eta1_bar, eta2 et beta après une étape de Gibbs
-
-    n <- length(y)
-    p <- length(beta)
-    xi1 <- Xi1(theta)
-    xi2 <- Xi2(theta)
-
-    v_bar <- v_bar_update(tau, beta, n, x, y, xi2, xi1)
-    y_bar <- y_bar_update(v_bar, beta, n, p, xi1, x, y)
-    t <- t_update(beta, eta1_bar, eta2, p)
-    new_beta <- beta_update(tau, v_bar, t, y_bar, eta2, xi2, x, y, p)
-    new_eta1_bar <- eta1_bar_update(t, eta1_bar, p)
-    new_eta2 <- eta2_update(new_beta, t, p)
-    new_tau <- tau_update(v_bar, new_beta, x, y, xi1, xi2, n)
-
-    return( c(new_tau, new_eta1_bar, new_eta2, new_beta) )
-
+  return( c(new_tau, new_eta1_bar, new_eta2, new_beta) )
 }
 
 ########################### Simulation
@@ -239,49 +315,79 @@ Gibbs_update \<- function(tau, eta1_bar, eta2, beta, x, y, theta){ \# mets à jo
 
 # autocorr = 10
 
-Generation_Gibbs \<- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
-
-\# génère un tableau avec r_gibbs échantillonages de Gibbs des variables : \# tau : première colonne \# eta1_bar : deuxième colonne \# eta2 : troisième colonne \# beta : colonnes restantes
-
-\# initialisation des paramètres tau \<- rgamma(1, shape=a, rate=b) eta1 \<- rgamma(1, shape=c1, rate=d1) eta2 \<- rgamma(1, shape=c2, rate=d2) eta1_bar \<- (eta1\*\*2) / (4\*eta2) beta \<- rep(1, length(x\[1,\]))
-
-\# tables vides tau_gibbs \<- matrix(nrow=r_gibbs, ncol=1) eta1_bar_gibbs \<- matrix(nrow=r_gibbs, ncol=1) eta2_gibbs \<- matrix(nrow=r_gibbs, ncol=1) beta_gibbs \<- matrix(nrow=r_gibbs, ncol=length(x\[1,\]))
-
-\# burn in : for(r in 1:burnin){ res \<- Gibbs_update(tau, eta1_bar, eta2, beta, x, y, theta)
-
+Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
+  
+  # génère un tableau avec r_gibbs échantillonages de Gibbs des variables :
+  # tau : première colonne
+  # eta1_bar : deuxième colonne
+  # eta2 : troisième colonne
+  # beta : colonnes restantes
+  
+  # initialisation des paramètres
+  tau <- rgamma(1, shape=a, rate=b)
+  eta1 <- rgamma(1, shape=c1, rate=d1)
+  eta2 <- rgamma(1, shape=c2, rate=d2)
+  eta1_bar <- (eta1**2) / (4*eta2)
+  beta <- rep(1, length(x[1,]))
+  
+  # tables vides
+  tau_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+  eta1_bar_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+  eta2_gibbs <- matrix(nrow=r_gibbs, ncol=1)
+  beta_gibbs <- matrix(nrow=r_gibbs, ncol=length(x[1,]))
+  
+  # burn in :
+  for(r in 1:burnin){
+    res <- Gibbs_update(tau, eta1_bar, eta2, beta, x, y, theta)
     tau <- res[1]
     eta1_bar <- res[2]
     eta2 <- res[3]
-    beta <- res[-c(1:3)]
+    beta <- res[-c(1:3)] # Arthur: pour le burnin, il faut pas stocker les infos, si?
+  
+  }
+  
+  # gibbs sampling :
+  for(r in 1:r_gibbs){
+    for(j in 1:(1+autocorr)){
+      res <- Gibbs_update(tau, eta1_bar, eta2, beta, x, y, theta)
+      tau <- res[1]
+      eta1_bar <- res[2]
+      eta2 <- res[3]
+      beta <- res[-c(1:3)]
+    }
+    tau_gibbs[r] <- tau
+    eta1_bar_gibbs[r] <- eta1_bar
+    eta2_gibbs[r] <- eta2
+    beta_gibbs[r,] <- beta
+  }
+  
+  return(cbind(tau_gibbs, eta1_bar_gibbs, eta2_gibbs, beta_gibbs))
+  # list(tau = tau_gibbs, eta1_bar = eta1_bar_gibbs, eta2 = eta2_gibbs, beta = beta_gibbs)
 
 }
 
-\# gibbs sampling : for(r in 1:r_gibbs){ for(j in 1:(1+autocorr)){ res \<- Gibbs_update(tau, eta1_bar, eta2, beta, x, y, theta)
-
-        tau <- res[1]
-        eta1_bar <- res[2]
-        eta2 <- res[3]
-        beta <- res[-c(1:3)]
-      }
-
-      tau_gibbs[r] <- tau
-      eta1_bar_gibbs[r] <- eta1_bar
-      eta2_gibbs[r] <- eta2
-      beta_gibbs[r,] <- beta
-
+bayesian_qreg <- function(x, y, theta, n_vals=20){
+  # genere un estimateur bayesien de beta
+  # en moyennant sur n_vals valeurs generees par gibbs sampling
+  # output :
+  # premiere ligne estimateur de beta
+  # deuxième ligne : standard deviation
+  
+  gen <- Generation_Gibbs(n_vals, x, y, theta, burnin=10, autocorr=10)
+  mean <- colMeans(gen$beta)
+  std <- sqrt( colMeans(t(t(gen$beta) - mean)**2) )
+  
+  l2 <- mean(gen$eta2 / gen$tau)
+  l1 <- mean(sqrt(4 * gen$eta2 * gen$eta1_bar) / gen$tau)
+  
+  list(
+    beta_mean=mean,
+    beta_std=std,
+    tau=mean(gen$tau),
+    lambda1=l1,
+    lambda2=l2
+  )
 }
-
-#return(cbind(tau_gibbs, eta1_bar_gibbs, eta2_gibbs, beta_gibbs)) list(tau = tau_gibbs, eta1_bar = eta1_bar_gibbs, eta2 = eta2_gibbs, beta = beta_gibbs)
-
-}
-
-bayesian_qreg \<- function(x, y, theta, n_vals=20){ \# genere un estimateur bayesien de beta en moyennant sur n_vals valeurs generees par gibbs sampling \# output : \# premiere ligne estimateur de beta \# deuxième ligne : standard deviation
-
-gen \<- Generation_Gibbs(n_vals, x, y, theta, burnin=10, autocorr=10) mean \<- colMeans(gen$beta) std <- sqrt( colMeans(t(t(gen$beta) - mean)\*\*2) )
-
-l2 \<- mean(gen$eta2 / gen$tau) l1 \<- mean(sqrt(4 \* gen$eta2 * gen$eta1_bar) / gen\$tau)
-
-list(beta_mean=mean, beta_std=std, tau=mean(gen\$tau), lambda1=l1, lambda2=l2) }
 
 
 ################## paramétrisation burn-in & corrélations ######################
@@ -318,9 +424,6 @@ rm(beta_gibbs, r_gibbs, data, eta1_bar_gibbs, eta2_gibbs, res, tau_gibbs, x, y, 
 
 ```
 
-## Simulation (1,5 page)
-
-> Description of the computational method used and difficulties encountered
 
 Simulation of the data :
 
@@ -330,7 +433,7 @@ Skewed Laplace error with shape parameter $\tau$ and $\theta$-th quantile equal 
 
 Gaussian errors with standard deviation $3$ and $\theta$-th quantile equal to $0$. These errors are used in the article and enable evaluating the model when it is misspecified.
 
-We compare bayesian EN to classical EN using the library hqreg developped by @hqreg. This library gives an estimator of $\beta$ for the QR ptask with the following EN penalty : \$P = \lambda \\alpha \|\beta \|\_1 + \frac{\lambda (1-\alpha)}{2} \|\beta\|\_2\^2 \$
+We compare bayesian EN to classical EN using the library hqreg developped by @hqreg. This library gives an estimator of $\beta$ for the QR ptask with the following EN penalty : $P =  \lambda \alpha \|\beta \|_1 + \frac{\lambda (1-\alpha)}{2} \|\beta\|_2^2$
 
 The library furnishes cross-validation over $\lambda$ with mean square error. We further perform cross-validation over $\alpha$ to obtain a single output for $\beta$ estimator.
 
@@ -422,3 +525,9 @@ From the project instructions
 Focus on prediction accuracy (not on reconstruction validity or inference).
 
 > we give a generic treatment to a set of regularization approaches, including lasso, group lasso and elastic net penalties.
+
+
+1. Definition of the problem under study and explanation of why it is interesting (1 page)
+2. Choice of the appropriate Bayesian technique (you should explain the methodology used and the motivation why you have chosen it) (1,5 page)
+3. Description of the computational method used and difficulties encountered
+ (1,5 page)
