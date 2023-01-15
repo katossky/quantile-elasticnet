@@ -116,14 +116,17 @@ eta1_bar_update <- function(t, eta1_bar, p){
   # one step Metropolis Hastings
   # proposition pour new_eta1_bar :
   prop_eta1_bar <- rgamma(1, shape=c1 + p, rate=d1 + sum(t-1))
-  
   # acceptation / rejet :
-  alpha = dgamma(prop_eta1_bar, shape=c1 + p, rate=d1 + sum(t-1)) / dgamma(eta1_bar, shape=c1 + p, rate=d1 + sum(t-1))
-  u = runif(1)
-  
-  new_eta1_bar = eta1_bar
-  if(u<alpha){new_eta1_bar = prop_eta1_bar}
-  return(new_eta1_bar)
+  d_eta1_bar <- function(eta){
+    expint::gammainc(1/2,eta)^(-p) * eta^( p/2 + c1 - 1 ) * exp( -eta*(d1+sum(t)) )
+  }
+  alpha <- d_eta1_bar(prop_eta1_bar) / d_eta1_bar(eta1_bar)
+  u <- runif(1)
+  if(u < alpha){
+    return(prop_eta1_bar)
+  } else {
+    return(eta1_bar)
+  }
 }
 
 eta2_update <- function(beta, t, p){
@@ -172,9 +175,8 @@ Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
 
   # initialisation des paramètres 
   tau <- rgamma(1, shape=a, rate=b)
-  eta1 <- rgamma(1, shape=c1, rate=d1)
+  eta1_bar <- rgamma(1, shape=c1, rate=d1)
   eta2 <- rgamma(1, shape=c2, rate=d2)
-  eta1_bar <- (eta1**2) / (4*eta2)
   beta <- rep(1, length(x[1,]))
 
   # tables vides

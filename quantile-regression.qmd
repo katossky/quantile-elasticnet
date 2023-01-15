@@ -141,7 +141,7 @@ The authors judge difficult to directly sample from the distribution $\tilde{\et
 
 With this last step, we can now run the Gibbs algorithm in full, thus estimate the unconditionnal distribution for $\boldsymbol{\beta}$ and turn to simulations.
 
-[^3]: Instead of sampling $\tilde \eta_1$ directly from its conditional law, we first sample a candidate $\eta_c$ from the distribution $\textrm{Gamma}(p+c_1, d_1 + \sum_k (t_k-1)$ **ARTHUR: j'ai rajouté le -1 ici comme dans l'article!!!!** which we accept with probability $\max(1, \alpha)$, where $\alpha$ is the ration of the density function of the Gamma distribution, evaluated in the candidate and in the current value of $\tilde \eta_1$ :
+[^3]: Instead of sampling $\tilde \eta_1$ directly from its conditional law, we first sample a candidate $\eta_c$ from the distribution $\textrm{Gamma}(p+c_1, d_1 + \sum_k (t_k)$ (the authors use $\textrm{Gamma}(p+c_1, d_1 + \sum_k (t_k-1)$ but we experimentally found that results were more stable with our choice) which we accept with probability $\max(1, \alpha)$, where $\alpha$ is the ration of the density function of the Gamma distribution, evaluated in the candidate and in the current value of $\tilde \eta_1$ :
 $g(\eta_c)/g(\tilde \eta_1)$.
 If the candidate is rejected, the value of $\tilde \eta_1$ remains unchanged.
 
@@ -149,8 +149,7 @@ If the candidate is rejected, the value of $\tilde \eta_1$ remains unchanged.
 
 ### Tuning of the Gibbs algorithm
 
-With the Gibbs algorithm, as with all MCMC methods, there is a burn-in phase (during which the Markov chain converges to its stationary law) and dependence between succesive iterations of the algorithm. We thus first check for the length of the burn-in period, then for correlation between successive runs.
-
+With the Gibbs algorithm, as with all MCMC methods, there is a burn-in phase (during which the Markov chain converges to its stationary law) and dependence between successive iterations of the algorithm. We thus first check for the length of the burn-in period, then for correlation between successive runs. We find that 20 rounds at the beginning then 20 steps between each draws are enough to provide satisfactory results.
 
 ```{r}
 #| echo: false
@@ -176,14 +175,19 @@ data_generation <- function(n, theta, beta0=c(3, 3, 0, 3, 3), tau0=2, g_err=TRUE
   p <- length(beta0)
   
   # simulation des variables explicatives x
-  S <- matrix(0, nrow=p, ncol=p)
-  for(k in 1:p){ for(l in 1:p){ S[k,l] <- 0.5**abs(k-l) } }
-  x <- matrix(0, nrow=n, ncol=p)
-  for(i in 1:n){ x[i,] <- mvtnorm::rmvnorm(1, mean=rep(0, p), sigma=S) }
+  # S <- matrix(0, nrow=p, ncol=p)
+  # for(k in 1:p){ for(l in 1:p){ S[k,l] <- 0.5**abs(k-l) } }
+  # x <- matrix(0, nrow=n, ncol=p)
+  # for(i in 1:n){ x[i,] <- mvtnorm::rmvnorm(1, mean=rep(0, p), sigma=S) }
+  S <- outer(1:p, 1:p, function(a,b) 0.5**abs(a-b))
+  X <- mvtnorm::rmvnorm(n, sigma=S)
   
   # simulation des erreurs
-  
-  if(g_err==FALSE){
+  if(g_err){
+    ## erreurs gaussiennes :
+    delta <- qnorm(theta, mean=0, sd=3)
+    u <- rnorm(n, mean=-delta, sd=3)
+  } else {
     ## erreurs du modèle quantile elastic net :
     v <- rexp(n)
     v_bar <- v / tau0
@@ -191,24 +195,14 @@ data_generation <- function(n, theta, beta0=c(3, 3, 0, 3, 3), tau0=2, g_err=TRUE
     u <- xi1 * v_bar + xi2 * sqrt(v_bar / tau0) * z
   }
   
-  if(g_err){
-    ## erreurs gaussiennes :
-    delta <- qnorm(theta, mean=0, sd=3)
-    u <- rnorm(n, mean=-delta, sd=3)
-  }
-  
   # calcul de y :
-  y <- x %*% beta0 + u
-
-  list(x=x, y=y)
+  y <- X %*% beta0 + u
+  return( list(x=X, y=y) )
 }
 ```
 
-
-We plot the evolution of variables in time and acf to determine a burnin time & autocorrelation time to ensure iid observations
-
-```{r}
-########################### Fonction Update
+```{r, individual-updates}
+#| echo: false
 
 a <- 0.1
 b <- 0.1
@@ -221,6 +215,7 @@ v_bar_update <- function(tau, beta, n, x, y, xi2, xi1){
   chi_v <- tau * (y - x%*%beta)**2 / (xi2** 2)
   psi_v <-(tau* xi1**2)/xi2**2 + 2*tau
   v_bar <- rep(0,n)
+  # rgig can not deal with varying chi parameter
   for(i in 1:n){
     v_bar[i] <- rgig(1, lambda=1/2, chi=chi_v[i], psi=psi_v)
   }
@@ -240,33 +235,39 @@ t_update <- function(beta, eta1_bar, eta2, p){
   psi_t <- 2 * eta1_bar
   t <- rep(0, p)
   for(k in 1:p){
-    t[k] <- 1 + rgig(1, lambda=1/2, chi=chi_t[k], psi=psi_t)
+    t[k] <- rgig(1, lambda=1/2, chi=chi_t[k], psi=psi_t)
   }
-  return(t)
+  return(1 + t)
 }
 
 beta_update <- function(tau, v_bar, t, y_bar, eta2, xi2, x, y, p){
-  sigma_inv2 <- tau * xi2**(-2) * colSums((x**2) * v_bar**(-1)) + 2 * eta2 * t*(t - 1)(-1) # il manque pas un ** ici?
-  sigma_bar <- 1 / sqrt(sigma_inv2)
-  mu_bar <- (sigma_bar**2)* tau * (xi2(-2)) * colSums( y_bar * x * (v_bar**(-1)) ) # pb ici? avec **** => **
-  beta <- rnorm(p, mean=mu_bar, sd=sigma_bar) # euh? on tire un beta aléatoirement ?
+  sigma_inv2 <- tau * xi2 **(-2) * colSums((x**2) * v_bar**(-1)) + 2 * eta2 * t/(t - 1)
+  sigma_bar2 <- 1 / sigma_inv2
+  mu_bar     <- (sigma_bar2)* tau * xi2**(-2) * colSums( y_bar * x * (v_bar**(-1)) )
+  beta       <- rnorm(p, mean=mu_bar, sd=sqrt(sigma_bar2))
   return(beta)
 }
 
 eta1_bar_update <- function(t, eta1_bar, p){
   # one step Metropolis Hastings
   # proposition pour new_eta1_bar :
-  prop_eta1_bar <- rgamma(1, shape=c1 + p, rate=d1 + sum(t-1))
+  prop_eta1_bar <- rgamma(1, shape=c1 + p, rate=d1 + sum(t))
   # acceptation / rejet :
-  alpha <- dgamma(
-    prop_eta1_bar,
-    shape=c1 + p,
-    rate=d1 + sum(t-1)
-  ) / dgamma(
-    eta1_bar,
-    shape=c1 + p,
-    rate=d1 + sum(t-1)
-  )
+  d_eta1_bar <- function(eta){
+    expint::gammainc(1/2,eta)^(-p) * eta^( p/2 + c1 - 1 ) * exp( -eta*(d1+sum(t)) )
+  }
+  alpha <- d_eta1_bar(prop_eta1_bar) / d_eta1_bar(eta1_bar)
+  #   dgamma(
+  #   prop_eta1_bar,
+  #   shape=c1 + p,
+  #   rate=d1 + sum(t-1)
+  # ) / dgamma(
+  #   eta1_bar,
+  #   shape=c1 + p,
+  #   rate=d1 + sum(t-1)
+  # )
+  # Arthur: c'est normal de ne jamais utiliser
+  # la vraie loi de eta1_bar ?
   u <- runif(1)
   if(u < alpha){
     return(prop_eta1_bar)
@@ -285,7 +286,10 @@ tau_update <- function(v_bar, beta, x, y, xi1, xi2, n){
   tau <- rgamma( 1, shape=a + 3*n/2, rate= r)
   return(tau)
 }
+```
 
+```{r, general-update}
+#| echo: false
 Gibbs_update <- function(tau, eta1_bar, eta2, beta, x, y, theta){
   
   # met à jours les paramètres tau, eta1_bar, eta2 et beta
@@ -306,13 +310,13 @@ Gibbs_update <- function(tau, eta1_bar, eta2, beta, x, y, theta){
 
   return( c(new_tau, new_eta1_bar, new_eta2, new_beta) )
 }
+```
 
-########################### Simulation
+```{r, simulation-function}
+#| echo: false
 
 # pour un échantillon iid prendre
-
 # burnin = 10
-
 # autocorr = 10
 
 Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
@@ -325,9 +329,9 @@ Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
   
   # initialisation des paramètres
   tau <- rgamma(1, shape=a, rate=b)
-  eta1 <- rgamma(1, shape=c1, rate=d1)
+  eta1_bar <- rgamma(1, shape=c1, rate=d1)
   eta2 <- rgamma(1, shape=c2, rate=d2)
-  eta1_bar <- (eta1**2) / (4*eta2)
+  # eta1_bar <- (eta1**2) / (4*eta2)
   beta <- rep(1, length(x[1,]))
   
   # tables vides
@@ -342,7 +346,7 @@ Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
     tau <- res[1]
     eta1_bar <- res[2]
     eta2 <- res[3]
-    beta <- res[-c(1:3)] # Arthur: pour le burnin, il faut pas stocker les infos, si?
+    beta <- res[-c(1:3)]
   
   }
   
@@ -361,97 +365,137 @@ Generation_Gibbs <- function(r_gibbs, x, y, theta, burnin=0, autocorr=0){
     beta_gibbs[r,] <- beta
   }
   
-  return(cbind(tau_gibbs, eta1_bar_gibbs, eta2_gibbs, beta_gibbs))
-  # list(tau = tau_gibbs, eta1_bar = eta1_bar_gibbs, eta2 = eta2_gibbs, beta = beta_gibbs)
-
+  # cbind(tau_gibbs, eta1_bar_gibbs, eta2_gibbs, beta_gibbs)
+  return(list(tau = tau_gibbs, eta1_bar = eta1_bar_gibbs, eta2 = eta2_gibbs, beta = beta_gibbs))
 }
+```
 
-bayesian_qreg <- function(x, y, theta, n_vals=20){
-  # genere un estimateur bayesien de beta
-  # en moyennant sur n_vals valeurs generees par gibbs sampling
-  # output :
-  # premiere ligne estimateur de beta
-  # deuxième ligne : standard deviation
-  
-  gen <- Generation_Gibbs(n_vals, x, y, theta, burnin=10, autocorr=10)
-  mean <- colMeans(gen$beta)
-  std <- sqrt( colMeans(t(t(gen$beta) - mean)**2) )
-  
-  l2 <- mean(gen$eta2 / gen$tau)
-  l1 <- mean(sqrt(4 * gen$eta2 * gen$eta1_bar) / gen$tau)
-  
-  list(
-    beta_mean=mean,
-    beta_std=std,
-    tau=mean(gen$tau),
-    lambda1=l1,
-    lambda2=l2
-  )
-}
-
-
-################## paramétrisation burn-in & corrélations ######################
-
-theta = 0.5
-data <- data_generation(100, theta)
+```{r, check-data}
+#| echo: false
+set.seed(200)
+theta <- 0.5
+data <- data_generation(100, theta, beta0=c(1,-3,0,5,0,2,0,10,-2,3), tau0 = 2)
 y <- data$y
 x <- data$x
 
-r_gibbs = 200
-
+r_gibbs <- 200
 res <- Generation_Gibbs(r_gibbs, x, y, theta)
 tau_gibbs <- res$tau
 eta1_bar_gibbs <- res$eta1_bar
 eta2_gibbs <- res$eta2
 beta_gibbs <- res$beta
-
-# auto-corrélations / burn-in ?
-plot(1:30,beta_gibbs[1:30,1]) 
-plot(1:30,beta_gibbs[1:30,3])
-plot(1:30,tau_gibbs[1:30]) 
-plot(1:200,eta1_bar_gibbs[1:200]) 
-plot(1:200,eta2_gibbs[1:200]) 
-  # --> burn-in : enlever 10 premières valeurs 
-
-acf(beta_gibbs[,1])
-acf(beta_gibbs[,3])
-acf(tau_gibbs)
-acf(eta1_bar_gibbs)
-acf(eta2_gibbs)
-  # --> correlations : prendre une valeur toutes les 5 ou 10 valeurs 
-
-rm(beta_gibbs, r_gibbs, data, eta1_bar_gibbs, eta2_gibbs, res, tau_gibbs, x, y, theta)
-
 ```
 
+```{r, burnin-graph}
+#| echo: false
+#| message: false
+#| warning: false
+library(ggplot2)
+library(dplyr)
+burnin_beta <- beta_gibbs |>
+    as_tibble(.name_repair = function(x) paste0("beta",1:length(x))) |>
+  mutate(run=1:nrow(beta_gibbs)) |>
+  tidyr::pivot_longer(cols=-run, values_to = "coefficient", names_to = "id", names_prefix = "beta") |>
+  ggplot(aes(x=run, y=coefficient)) +
+  geom_line(aes(group=id, colour=id)) +
+  labs(
+    subtitle=expression(paste("Values of ", beta, " per iteration")),
+    y=expression(beta[k])
+  )
 
-Simulation of the data :
+burnin_tau <- tibble(tau=tau_gibbs) |>mutate(run=1:nrow(beta_gibbs)) |>
+  mutate(run=1:nrow(beta_gibbs)) |>
+  tidyr::pivot_longer(cols=-run, values_to = "coefficient", names_to = "id") |>
+  ggplot(aes(x=run, y=coefficient)) +
+  geom_line(aes(group=id, colour=id)) +
+  labs(
+    subtitle=expression(paste("Values of ", tau, " per iteration")),
+    y=expression(tau)
+  )
+  
 
-$\beta \sim N(0, \Sigma)$ where $\Sigma_{i, j} = 0.5^{|i-j|}$ two types of errors :
+burnin_eta <- tibble(eta1_tilde=eta1_bar_gibbs, eta2=eta2_gibbs) |>
+  mutate(run=1:nrow(beta_gibbs)) |>
+  tidyr::pivot_longer(cols=-run, values_to = "coefficient", names_to = "id", names_prefix = "beta") |>
+  ggplot(aes(x=run, y=coefficient)) +
+  geom_line(aes(group=id, colour=id)) +
+  labs(
+    subtitle=expression(paste("Values of ", tilde(eta)[1], " and ", eta[2]," per iteration")),
+    y=expression(paste(tilde(eta)[1], " , ", eta[2]))
+  )
 
-Skewed Laplace error with shape parameter $\tau$ and $\theta$-th quantile equal to $0$. These errors correspond to what is assumed in the BRQR model. Not evaluated in the reference article.
+library(patchwork)
+(
+  (burnin_beta | (burnin_tau / burnin_eta)) &
+    guides(color='none') &
+    labs(x=NULL)
+)+
+  plot_annotation(title = "Burnin is over after 10-20 iterations (n=100, d=10)")
+```
 
-Gaussian errors with standard deviation $3$ and $\theta$-th quantile equal to $0$. These errors are used in the article and enable evaluating the model when it is misspecified.
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+library(forecast)
+( ( (
+  (ggAcf(beta_gibbs[,1]) + labs(y=expression(beta[1])) ) /
+  (ggAcf(beta_gibbs[,2])  + labs(y=expression(beta[2])) ) /
+  (ggAcf(beta_gibbs[,3])  + labs(y=expression(beta[3])) ) /
+  (ggAcf(beta_gibbs[,4])  + labs(y=expression(beta[4])) )
+) | (
+  (ggAcf(tau_gibbs)     + labs(y=expression(tau)) )/
+  (ggAcf(eta1_bar_gibbs)+ labs(y=expression(tilde(eta)[1])) )/
+  (ggAcf(eta2_gibbs)    + labs(y=expression(eta[2])) )
+) ) & labs(title=NULL, x=NULL)
+) +
+  plot_annotation(
+    title = "Autocorrelation fades out after 15-20 runs (n=100, d=10)",
+    subtitle = "Autocorrelation function for increasing lags"
+  )
+  
+```
 
-We compare bayesian EN to classical EN using the library hqreg developped by @hqreg. This library gives an estimator of $\beta$ for the QR ptask with the following EN penalty : $P =  \lambda \alpha \|\beta \|_1 + \frac{\lambda (1-\alpha)}{2} \|\beta\|_2^2$
+In the graphs above and in the results hereafter, we simulate data from $\mathbf{x} \sim N(0, \Sigma)$ where $\Sigma_{k, l} = 0.5^{|i\k-l|}$ and choose $\boldsymbol{\beta}=(1,-3,0,5,0,2,0,10,-2,3)$. We purposely choose three zero-coefficients and a small number of observations (n=100), a setting where Elasticnet is supposedly more efficient than classical least-square regression. In the results section, we use $\theta=0.3$, we test two specifications for the error term $u$:
+
+- Skewed Laplace error with shape parameter $\tau$ and whose $\theta$-th quantile is equal to $0$. These errors correspond to what is assumed in the model developed in the paper[^10]. 
+- Gaussian errors with standard deviation $3$ and whose $\theta$-th quantile is equal to $0$. These errors are used in the article and enable the evaluation of the model when it is misspecified.
+
+[^10]: Weirdly enough, the Skewed Laplace error is not evaluated in the reference article. The authors justify that this prior is too specific and that they prefer to test for robustness.
+
+In the result section below, we also compare Bayesian and non-Baysian quantile Elasticnet regressions, using the library `hqreg` developped by @hqreg. This library gives an estimator of $\boldsymbol{\beta}$ for the regularised quantile regression task with the following Elasticnet penalty using $(\alpha,\lambda)$ instead of our specification $(\lambda_1,\lambda_2)$ : $$\textrm{penalty} =  \lambda \alpha \|\boldsymbol{\beta}\|_1 + \frac{\lambda (1-\alpha)}{2} \|\boldsymbol{\beta}\|_2^2$$
 
 The library furnishes cross-validation over $\lambda$ with mean square error. We further perform cross-validation over $\alpha$ to obtain a single output for $\beta$ estimator.
 
-## Results (1 page)
+In our comparisons, $\hat{\boldsymbol{\beta}}_n$ is the classical estimator for the non-Bayesian version. It is the empirical average over 100 generations of $\boldsymbol{\beta}\mid \mathbf{y},\mathbf{X}$ in the Bayesian case.
 
-> Explanation and interpretation of the results.
+## Results
 
-> A mettre sous forme de tableau ??
+Globally, results from the Bayesian version (ours) underperfom the ones from the frequentist version (`hqreg`'s). However, it is much faster, in the magnitude order of seconds vs minutes.
+
+| $\theta$ | Error | Version| Sample size | Exec. time | Loss | $\|\hat\beta_n-\beta_0\|_2^2$  |
+|-|-|-|-:|-:|-|-|
+| 0.3 | Normal | Bayesian |  50 | s | 
+| 0.3 | Normal | Bayesian | 500 | m
+| 0.3 | Normal | Bayesian |
+| 0.3 | Normal | Bayesian |
+| 0.3 | Laplace | Non-Bayesian | |
+
+We find that skewed-Laplace errors give better results than Normal errors, which is expected.
+
+In conclusion, we have reproduced the Bayesian quantile Elasticnet regression proposed in @2010-quantile-regression and have extended their experiments. We cannot confirm their findings that their methods outperform both the non-Bayesian estimates, but nevertheless both estimates remain close to each other. However, the 10-fold gain in execution time may eventually favour the Bayesian method, especially for small sample sizes.
+
+
+
+
+
+
+
 
 RQ générales : 
 
-methode classique bcp plus longue ! 
-méthode bayésienne rapide mais l'erreur obtenue à la fin est bcp plus grande ! (vérifier la fonction de perte?)
-cependant l'estimateur obtenu au final est aussi proche de beta en norm 2  dans les 2 cas 
 
 peut être est ce du au calcul de lambda1 et lambda2 -> couple (l1, l2) associé à 1 estimateur beta, est ce que le couple moyen (l1_bar, l2_bar) associé au beta moyen ?
-
-on peut comparer l'erreur dans le cas du bruit u gaussien et u skewed laplace pour plusieurs theta ? 
 
 résultats :
  paramètres 
@@ -480,54 +524,15 @@ n_samples_train = 500
  méthode classique : 14s d'execution, loss = 1.8, $\| \hat{\beta} - \beta0 \|^2 = 0.6$
  méthode bayésienne : (moyenne sur 100 valeurs) 27s exec, loss = 31  $\| \hat{\beta} - \beta0 \|^2 = 0.9$
 
+## Appendix
 
+```r
 
-
-
-
-## Appendices
-
-### Code
-
-Some text with an important number of lines: `r nrow(iris)`.
-
-https://quarto.org/docs/computations/r.html https://quarto.org/docs/computations/execution-options.html
-
-```{r}
-#| echo: false
-#| warning: false
-library(hqreg)
-X = matrix(rnorm(1000*100), 1000, 100)
-beta = rnorm(10)
-eps = 4*rnorm(1000)
-y = drop(X[,1:10] %*% beta + eps)
-cv = cv.hqreg(X, y, seed = 123)
-plot(cv)
-```
-
-```{r}
-library(knitr)
-kable(head(cars))
 ```
 
 ### Project checks
 
 From the project instructions
 
--   [ ] The project length has to be about 5 pages (plus code)
--   [ ] Any language among Python, $\mathrm{R}$ or Matlab
--   [ ] Due date of the project is January 15,2023 . By the due date please upload
 -   [ ] report as a pdf named SurnameStudent1_SurnameStudent2,
 -   [ ] a zipped folder SurnameStudent1_SurnameStudent2 containing your code and a detailed readme file with instructions to run the code
-
-### Arthur's notes
-
-Focus on prediction accuracy (not on reconstruction validity or inference).
-
-> we give a generic treatment to a set of regularization approaches, including lasso, group lasso and elastic net penalties.
-
-
-1. Definition of the problem under study and explanation of why it is interesting (1 page)
-2. Choice of the appropriate Bayesian technique (you should explain the methodology used and the motivation why you have chosen it) (1,5 page)
-3. Description of the computational method used and difficulties encountered
- (1,5 page)
